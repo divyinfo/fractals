@@ -1,0 +1,61 @@
+ul.osx-dock li {
+    -webkit-transition: 0.15s linear;
+    -webkit-transition-property: -webkit-transform margin;
+}
+
+ul.osx-dock li canvas {
+    display: block;
+    -webkit-transform: scale(0.9);
+    transform: scale(0.9);
+    -webkit-transform-origin: center left;
+    transform-origin: center left;
+    -webkit-transition: 0.15s linear;
+    -webkit-transition-property: -webkit-transform margin;
+    /* -webkit-box-reflect: below 2px; */
+    /* -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.45, transparent), to(rgba(255, 255, 255, 0.25))); */
+}
+
+ul.osx-dock li:hover {
+    margin-top: 9px;
+    margin-bottom: 9px;
+    z-index: 200;
+}
+
+ul.osx-dock li:hover canvas {
+    -webkit-transform: scale(1.1);
+    transform: scale(1.1);
+}
+
+ul.osx-dock li.nearby {
+    margin-top: 6px;
+    margin-bottom: 6px;
+    z-index: 100;
+}
+
+ul.osx-dock li.nearby canvas {
+    -webkit-transform: scale(0.95);
+    transform: scale(0.95);
+}
+
+ul.osx-dock li span {
+    background: rgba(255, 255, 255, 0.25);
+    position: absolute;
+    display: none;
+    top: 80px;
+    
+    padding: 3px 6px;
+    width: 120px;
+    margin-left: -66px;
+    left: 50%;
+    
+    font-size: 11px;
+    font-weight: bold;
+    -webkit-border-radius: 6px;
+    border-radius: 6px;
+    color: #fff;
+}
+
+ul.osx-dock li:hover span {
+    display: block;
+    z-index: 400;
+}
