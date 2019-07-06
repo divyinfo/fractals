@@ -154,25 +154,32 @@
                 var mapIndex = $(e.target).parent().data('mapIndex');
 
                 if (typeof mapIndex !== 'undefined' && maps.length > mapIndex) {
-                    var magnif = maps.length > mapIndex + 1 ? 1920 * (maps[mapIndex + 1].magnif * .2) / width : actualMangif;
-                    
-                    var newX = offsetOfCenterX / maps[mapIndex].magnif + maps[mapIndex].centerX;
-                    var newY = - offsetOfCenterY / maps[mapIndex].magnif + maps[mapIndex].centerY;
+
+                    hoverX = offsetOfCenterX / maps[mapIndex].magnif + maps[mapIndex].centerX;
+                    hoverY = - offsetOfCenterY / maps[mapIndex].magnif + maps[mapIndex].centerY;
+
+                    if (maps.length > mapIndex + 1) {
+                        var magnif = 1920 * (maps[mapIndex + 1].magnif * .2) / width;
+                        
+                        actualMangif = magnif;
+                        
+                        renderMandel(cvs.getContext('2d'), actualMangif, hoverX, hoverY);
+                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
+                    } else {
+                        renderMandel(cvs.getContext('2d'), actualMangif, hoverX, hoverY);
+                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
+                    }
 
                     console.log(
                         'magnif', magnif,
                         'mapIndex', mapIndex,
                         'offsetOfCenterX', offsetOfCenterX,
                         'offsetOfCenterY', offsetOfCenterY,
-                        'newX', newX,
-                        'newY', newY,
+                        'newX', hoverX,
+                        'newY', hoverY,
                         '1920 / magnif', 1920 / magnif,
                         '978 / magnif', 978 / magnif
                     );
-
-                    renderMandel(cvs.getContext('2d'), actualMangif = magnif, newX, newY);
-
-                    renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif = magnif, newX, newY, 1920 / magnif, 978 / magnif);
                 }
             });
 
@@ -193,6 +200,18 @@
             maps[index].centerX = centerX;
             maps[index].centerY = centerY;
         }
+
+        console.log(
+            'Rendering minimap', index,
+            'ctx', ctx,
+            'magnif', magnif,
+            'centerX', centerX,
+            'centerY', centerY,
+            'startX', 0,
+            'startY', 0,
+            'width', width,
+            'height', height
+        );
 
         renderMandel(ctx, magnif, centerX, centerY, 0, 0, width, height);
         renderMandel(ctxMinimap, 1920 * magnif / width, centerX, centerY, 0, 0, 1920, 978);
