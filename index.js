@@ -360,6 +360,13 @@
                     $(maps[i].cvs).parent().hide();
                 }
             }
+
+            // Draw highlight on the last minimap
+
+            ctx.beginPath();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+            ctx.strokeRect(0, 0, width, height);
         }
 
     }

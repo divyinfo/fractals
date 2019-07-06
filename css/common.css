@@ -34,3 +34,9 @@ body {
     width: 170px;
     margin-left: 5px;
 }
+
+#maps-container > li:last-of-type canvas {
+    box-shadow: 0 0 2em rgba(255, 255, 255, 0.7);
+    -moz-box-shadow: 0 0 2em rgba(255, 255, 255, 0.7);
+    -webkit-box-shadow: 0 0 2em rgba(255, 255, 255, 0.7);
+}
