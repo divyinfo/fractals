@@ -8,6 +8,15 @@
 
     var ctx = cvs.getContext('2d');
 
+    var cvsMinimap = document.createElement('canvas');
+    $('#visual-container').append(cvsMinimap);
+    $(cvsMinimap).hide();
+
+    cvsMinimap.width = 1920;
+    cvsMinimap.height = 978;
+
+    var ctxMinimap = cvsMinimap.getContext('2d');
+
     var maps = [];
 
     var cache = {}
@@ -54,7 +63,7 @@
         return cache[y][x] = 0;
     }
 
-    function renderMandel(ctx, magnif = 1000, centerX = 0, centerY = 0, startX = 0, startY = 0, width = cvs.width, height = cvs.height) {
+    function renderMandel(ctx, magnif = 1000, centerX = 0, centerY = 0, startX = 0, startY = 0, width = 1920, height = 978) {
 
         var realWidthHalf = width / magnif * 0.5;
         var realHeightHalf = height / magnif * 0.5;
@@ -88,11 +97,9 @@
         magnif = 30,
         centerX = 0,
         centerY = 0,
-        startX = 0,
-        startY = 0,
         width = 160,
         height = 90,
-        hoverMangif = 1000,
+        hoverMagif = 1000,
         hoverCenterX = 0,
         hoverCenterY = 0,
         hoverWidth = 1,
@@ -105,59 +112,91 @@
 
         if (maps.length <= index || typeof maps[index].ctx === 'undefined') {
 
-            var miniCanvas = document.createElement('canvas');
+            var cvsMinimapSmall = document.createElement('canvas');
 
-            miniCanvas.width = width;
-            miniCanvas.height = height;
+            cvsMinimapSmall.width = width;
+            cvsMinimapSmall.height = height;
 
-            ctx = miniCanvas.getContext('2d');
-
-            var miniCanvasEnlarge = document.createElement('canvas');
-            $('#visual-container').append(miniCanvasEnlarge);
-            $(miniCanvasEnlarge).hide();
-        
-            miniCanvasEnlarge.width = 1920;
-            miniCanvasEnlarge.height = 978;
-        
-            var ctxLarge = miniCanvasEnlarge.getContext('2d');
+            ctx = cvsMinimapSmall.getContext('2d');
 
             li = $('<li></li>');
             span = $('<span></span>');
             span.html(magnif);
-            $('#maps-container').append(li.append(span).append(miniCanvas));
+            $('#maps-container').append(li.append(span).append(cvsMinimapSmall));
 
-            li.data('largeCanvas', miniCanvasEnlarge);
+            li.data('mapIndex', index);
 
             li.mouseover(function (e) {
                 li.prev().toggleClass('nearby', true);
                 li.next().toggleClass('nearby', true);
 
-                $($(this).data('largeCanvas')).stop().fadeTo(400, Math.random() * 0.2 + 0.8);
+                ctxMinimap.putImageData(maps[li.data('mapIndex')].imgLarge, 0, 0);
+                $(cvsMinimap).stop().fadeTo(400, Math.random() * 0.2 + 0.8);
             });
 
             li.mouseout(function (e) {
                 li.prev().removeClass('nearby');
                 li.next().removeClass('nearby');
 
-                $($(this).data('largeCanvas')).stop().fadeTo(400, 0);
+                ctxMinimap.putImageData(maps[li.data('mapIndex')].imgLarge, 0, 0);
+                $(cvsMinimap).stop().fadeTo(400, 0);
+            });
+
+            $(cvsMinimapSmall).mousedown(function (e) {
+                // console.log('down', e);
+
+                var offsetX = e.offsetX;
+                var offsetY = e.offsetY;
+
+                var offsetOfCenterX = offsetX - e.target.width * .5;
+                var offsetOfCenterY = offsetY - e.target.height * .5;
+
+                var mapIndex = $(e.target).parent().data('mapIndex');
+
+                if (typeof mapIndex !== 'undefined' && maps.length > mapIndex) {
+                    var magnif = maps.length > mapIndex + 1 ? 1920 * (maps[mapIndex + 1].magnif * .2) / width : actualMangif;
+                    
+                    var newX = offsetOfCenterX / maps[mapIndex].magnif + maps[mapIndex].centerX;
+                    var newY = - offsetOfCenterY / maps[mapIndex].magnif + maps[mapIndex].centerY;
+
+                    console.log(
+                        'magnif', magnif,
+                        'mapIndex', mapIndex,
+                        'offsetOfCenterX', offsetOfCenterX,
+                        'offsetOfCenterY', offsetOfCenterY,
+                        'newX', newX,
+                        'newY', newY,
+                        '1920 / magnif', 1920 / magnif,
+                        '978 / magnif', 978 / magnif
+                    );
+
+                    renderMandel(cvs.getContext('2d'), actualMangif = magnif, newX, newY);
+
+                    renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif = magnif, newX, newY, 1920 / magnif, 978 / magnif);
+                }
             });
 
             maps[index] = {
-                cvs: miniCanvas,
+                cvs: cvsMinimapSmall,
                 ctx: ctx,
-                cvsLarge: miniCanvasEnlarge, 
-                ctxLarge: ctxLarge,
+                magnif: magnif,
+                centerX: centerX,
+                centerY: centerY,
             };
         } else {
             ctx = maps[index].ctx;
-            ctxLarge = maps[index].ctxLarge;
             $(maps[index].cvs).parent().show();
             li = $(maps[index].cvs).parent();
             span = li.find('span').first();
+
+            maps[index].magnif = magnif;
+            maps[index].centerX = centerX;
+            maps[index].centerY = centerY;
         }
 
         renderMandel(ctx, magnif, centerX, centerY, 0, 0, width, height);
-
+        renderMandel(ctxMinimap, 1920 * magnif / width, centerX, centerY, 0, 0, 1920, 978);
+       
         // Draw Minimap Border
 
         // ctx.beginPath();
@@ -178,13 +217,64 @@
         var nextMagnif = 0,
             nextMinimapNeeded = false;
 
+        // Draw hover rect on big canvas of minimap
+
+        // console.log('hoverWidth * magnif', hoverWidth * magnif, 'width * smallestRegionRatio', width * smallestRegionRatio, 'new needed, next one will be', magnif / smallestRegionRatio);
+
         if (hoverWidth * magnif <= width * smallestRegionRatio || hoverHeight * magnif <= height * smallestRegionRatio) {
             nextMinimapNeeded = true;
-
             nextMagnif = magnif / smallestRegionRatio;
+        } else {
+            nextMinimapNeeded = false;
+        }
 
-            span.html(nextMagnif);
+        var magnifBigCanvas = 1920 * magnif / width;
 
+        if (nextMinimapNeeded) {
+            var nextMagnifBigCanvas = magnifBigCanvas / smallestRegionRatio;
+
+            hoverStartX = hoverCenterX - (1920 / nextMagnifBigCanvas) * .5 - centerX
+            hoverStartY = hoverCenterY + (978 / nextMagnifBigCanvas) * .5 - centerY
+
+            strokeX = 1920 * .5 + hoverStartX * (magnifBigCanvas);
+            strokeY = 978 * .5 - hoverStartY * (magnifBigCanvas);
+            strokeW = 1920 * smallestRegionRatio;
+            strokeH = 978 * smallestRegionRatio;
+        } else {
+            hoverStartX = hoverCenterX - hoverWidth * .5 - centerX
+            hoverStartY = hoverCenterY + hoverHeight * .5 - centerY
+
+            strokeX = 1920 * .5 + hoverStartX * magnifBigCanvas;
+            strokeY = 978 * .5 - hoverStartY * magnifBigCanvas;
+            strokeW = hoverWidth * magnifBigCanvas;
+            strokeH = hoverHeight * magnifBigCanvas;
+        }
+
+        if (strokeW <= 1) {
+            strokeW = 1
+        }
+
+        if (strokeH <= 1) {
+            strokeH = 1
+        }
+
+        ctxMinimap.beginPath();
+        ctxMinimap.lineWidth = 1;
+        ctxMinimap.strokeStyle = 'rgba(255, 0, 255, 1)';
+        ctxMinimap.strokeRect(
+            strokeX,
+            strokeY,
+            strokeW,
+            strokeH
+        );
+
+        var imageDataMinimapLarge = ctxMinimap.getImageData(0, 0, 1920, 978);
+        // ctxMinimap.putImageData(imageDataMinimapLarge, 0, 0);
+        maps[index].imgLarge = imageDataMinimapLarge;
+
+        // Draw hover rect on small canvas of minimap
+
+        if (nextMinimapNeeded) {
             hoverStartX = hoverCenterX - (width / nextMagnif) * .5 - centerX
             hoverStartY = hoverCenterY + (height / nextMagnif) * .5 - centerY
 
@@ -193,8 +283,6 @@
             strokeW = width * smallestRegionRatio;
             strokeH = height * smallestRegionRatio;
         } else {
-            nextMinimapNeeded = false;
-
             hoverStartX = hoverCenterX - hoverWidth * .5 - centerX
             hoverStartY = hoverCenterY + hoverHeight * .5 - centerY
 
@@ -222,11 +310,15 @@
             strokeH
         );
 
+        if (nextMinimapNeeded) {
+            span.html(nextMagnif);
+        }
+
         if (nextMinimapNeeded && nextMagnif) {
 
-            renderMandel(ctxLarge, 1920 * magnif / width, centerX, centerY, 0, 0, 1920, 978);
+            console.log('Rendering next map', index + 1, 'current magnif', magnif, 'next magnif', nextMagnif);
 
-            renderMinimap(index + 1, nextMagnif, hoverCenterX, hoverCenterY, startX, startY + height + 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+            renderMinimap(index + 1, nextMagnif, hoverCenterX, hoverCenterY, 160, 90, hoverMagif, hoverX, hoverY, 1920 / hoverMagif, 978 / hoverMagif);
 
             ctx.beginPath();
             ctx.lineWidth = 1;
@@ -244,6 +336,7 @@
 
         } else {            
             for (var i = index + 1; i < maps.length; i++) {
+                console.log('Hiding', i);
                 if (typeof maps[i].cvs !== 'undefined') {
                     $(maps[i].cvs).parent().hide();
                 }
@@ -252,14 +345,22 @@
 
     }
 
+    $(document).mouseup(function (e) {
+        var targetIndex = $(e.target).parent().data('mapIndex');
+        if (typeof targetIndex !== 'undefined') {
+            // console.log('up', targetIndex);
+        }
+    });
+
     var actualMangif = 1000000000
     var mapMagnif = 30
-    var hoverX = 0.3602404434376143
-    var hoverY = 0.641313061064803
+    var hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
+    var hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
+
+    console.log(hoverX, hoverY);
 
     renderMandel(ctx, actualMangif, hoverX, hoverY);
-
-    renderMinimap(0, mapMagnif, 0, 0, 5, 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+    renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
 
     $(document).keydown(function(e) {
         // Numpad +
@@ -267,7 +368,7 @@
             actualMangif *= 2
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
-            renderMinimap(0, mapMagnif, 0, 0, 5, 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
         }
 
         // Numpad -
@@ -275,7 +376,7 @@
             actualMangif *= 0.5
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
-            renderMinimap(0, mapMagnif, 0, 0, 5, 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
         }
 
         // ArrowUp
@@ -283,7 +384,7 @@
             hoverY += 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
-            renderMinimap(0, mapMagnif, 0, 0, 5, 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
         }
 
         // ArrowDown
@@ -291,7 +392,7 @@
             hoverY -= 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
-            renderMinimap(0, mapMagnif, 0, 0, 5, 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
         }
 
         // ArrowLeft
@@ -299,7 +400,7 @@
             hoverX -= 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
-            renderMinimap(0, mapMagnif, 0, 0, 5, 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
         }
 
         // ArrowRight
@@ -307,7 +408,7 @@
             hoverX += 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
-            renderMinimap(0, mapMagnif, 0, 0, 5, 5, 160, 90, actualMangif, hoverX, hoverY, cvs.width / actualMangif, cvs.height / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, 1920 / actualMangif, 978 / actualMangif);
         }
     });
 
