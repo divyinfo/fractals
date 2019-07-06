@@ -145,6 +145,10 @@
             $(cvsMinimapSmall).mousedown(function (e) {
                 // console.log('down', e);
 
+                if (e.which != 1) {
+                    return;
+                }
+
                 var offsetX = e.offsetX;
                 var offsetY = e.offsetY;
 
@@ -358,6 +362,7 @@
                 console.log('Hiding', i);
                 if (typeof maps[i].cvs !== 'undefined') {
                     $(maps[i].cvs).parent().hide();
+                    $(maps[i].cvs).parent().removeClass('shadow');
                 }
             }
 
@@ -367,6 +372,8 @@
             ctx.lineWidth = 1;
             ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
             ctx.strokeRect(0, 0, width, height);
+
+            $(maps[index].cvs).parent().toggleClass('shadow', true);
         }
 
     }
