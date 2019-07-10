@@ -4,6 +4,9 @@
     screenHeight = 821;
 
     var cvs = document.createElement('canvas');
+    
+    var cvsLargeCache = document.createElement('canvas');
+
     $('#visual-container').append(cvs);
 
     cvs.width = screenWidth;
@@ -14,30 +17,144 @@
     var cvsImg = null;
     var dragStartX = null;
     var dragStartY = null;
+    var dragCurrentMouseX = null;
+    var dragCurrentMouseY = null;
     var dragCurrentX = null;
     var dragCurrentY = null;
+    var dragGlobalID = null;
 
-    $(document).mousedown(function (e) {
-        dragStartX = e.offsetX;
-        dragStartY = e.offsetY;
+    $('#visual-container').mousedown(function (e) {
+        dragStartX = dragCurrentMouseX = e.offsetX;
+        dragStartY = dragCurrentMouseY = e.offsetY;
+
+        if (!dragGlobalID) {
+            dragGlobalID = window.requestAnimationFrame(step);
+            console.log('dragging start');
+        }
     });
 
-    $(document).mouseup(function (e) {
+    function step(timestamp) {
+        if (dragCurrentMouseX - dragStartX !== 0 || dragCurrentMouseY - dragStartY !== 0) {
+
+            dragCurrentX += dragCurrentMouseX - dragStartX;
+            dragCurrentY += dragCurrentMouseY - dragStartY;
+
+            dragStartX = dragCurrentMouseX;
+            dragStartY = dragCurrentMouseY;
+    
+            ctx.clearRect(0, 0, screenWidth, screenHeight);
+            ctx.putImageData(cvsImg, dragCurrentX, dragCurrentY);
+            // ctx.putImageData(cvsImg, dragCurrentX, dragCurrentY,
+            //     dragCurrentX > 0 ? 0 : - dragCurrentX,
+            //     dragCurrentY > 0 ? 0 : - dragCurrentY,
+            //     dragCurrentX > 0 ? screenWidth - dragCurrentX : screenWidth + dragCurrentX,
+            //     dragCurrentY > 0 ? screenHeight - dragCurrentY : screenHeight + dragCurrentY
+            // );
+
+            // hoverX += - dragCurrentX / actualMagif;
+            // hoverY += dragCurrentY / actualMagif;
+
+            for (let i = 0; i < maps.length; i++) {
+                if ($(maps[i].cvs).parent().hasClass('shadow')) {
+
+                    let ctx = maps[i].ctx;
+                    let magnif = maps[i].magnif;
+                    
+                    let width = maps[i].cvs.width;
+                    let height = maps[i].cvs.height;
+                    
+                    let hoverWidth = screenWidth / actualMagif;
+                    let hoverHeight = screenHeight / actualMagif;
+
+                    let hoverStartX = hoverX - (dragCurrentX - (screenWidth - cvsLargeCache.width) * .5 ) / actualMagif - hoverWidth * .5 - maps[i].centerX;
+                    let hoverStartY = hoverY + (dragCurrentY - (screenHeight - cvsLargeCache.height) * .5 ) / actualMagif + hoverHeight * .5 - maps[i].centerY;
+                    
+                    strokeX = width * .5 + hoverStartX * magnif;
+                    strokeY = height * .5 - hoverStartY * magnif;
+                    strokeW = hoverWidth * magnif;
+                    strokeH = hoverHeight * magnif;
+                    
+                    if (strokeW <= 1) {
+                        strokeW = 1
+                    }
+                    
+                    if (strokeH <= 1) {
+                        strokeH = 1
+                    }
+
+                    let img = null;
+                    if (typeof maps[i].img === 'undefined') {
+                        img = maps[i].img = ctx.getImageData(0, 0, maps[i].cvs.width, maps[i].cvs.height);
+                    } else {
+                        img = maps[i].img;
+                    }
+                    
+                    ctx.clearRect(0, 0, maps[i].cvs.width, maps[i].cvs.height);
+                    ctx.putImageData(img, 0, 0);
+            
+                    ctx.beginPath();
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(255, 0, 255, 1)';
+                    ctx.strokeRect(
+                        strokeX,
+                        strokeY,
+                        strokeW,
+                        strokeH
+                    );
+
+                    break;
+                }
+            }
+        }
+
+        dragGlobalID = window.requestAnimationFrame(step);
+    }
+
+    $('#visual-container').mousemove(function (e) {
+        if (dragGlobalID) {
+            dragCurrentMouseY = e.offsetY;
+            dragCurrentMouseX = e.offsetX;
+        }
+    });
+
+    $('#visual-container').mouseup(function (e) {
+        if (e.which != 1) {
+            return;
+        }
+        
         dragCurrentX += e.offsetX - dragStartX;
         dragCurrentY += e.offsetY - dragStartY;
-
+        
         ctx.clearRect(0, 0, screenWidth, screenHeight);
         ctx.putImageData(cvsImg, dragCurrentX, dragCurrentY);
+        // ctx.putImageData(
+        //     cvsImg, dragCurrentX, dragCurrentY,
+        //     dragCurrentX > 0 ? 0 : - dragCurrentX,
+        //     dragCurrentY > 0 ? 0 : - dragCurrentY,
+        //     dragCurrentX > 0 ? screenWidth - dragCurrentX : screenWidth + dragCurrentX,
+        //     dragCurrentY > 0 ? screenHeight - dragCurrentY : screenHeight + dragCurrentY
+        // );
+
+        window.cancelAnimationFrame(dragGlobalID);
+        dragGlobalID = null;
+
+        // console.log('dragging stop', hoverX, hoverY);
+
+        // hoverX += - dragCurrentX / actualMagif;
+        // hoverY += dragCurrentY / actualMagif;
+
+        // dragCurrentX = 0;
+        // dragCurrentY = 0;
 
         // window.requestAnimationFrame(function(timestamp) {
         //     console.log("requestAnimationFrame", timestamp);
 
-        //     hoverX += - dragCurrentX / actualMangif;
-        //     hoverY += dragCurrentY / actualMangif;
+        //     hoverX += - dragCurrentX / actualMagif;
+        //     hoverY += dragCurrentY / actualMagif;
     
-        //     renderMandel(ctx, actualMangif, hoverX, hoverY);
+        //     renderMandel(ctx, actualMagif, hoverX, hoverY);
         //     cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-        //     renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+        //     renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
     
         //     dragCurrentX = 0;
         //     dragCurrentY = 0;
@@ -62,9 +179,9 @@
         var realComponentOfResult = x;
         var imaginaryComponentOfResult = y;
 
-        if ((typeof cache[y]) !== 'undefined' && (typeof cache[y][x]) !== 'undefined') {
-            return cache[y][x];
-        }
+        // if ((typeof cache[y]) !== 'undefined' && (typeof cache[y][x]) !== 'undefined') {
+        //     return cache[y][x];
+        // }
 
         for (var i = 0; i < maxIterations; i++) {
             // Calculate the real and imaginary components of the result
@@ -83,11 +200,13 @@
 
                 // console.log(typeof cache[y], cache);
 
-                if ((typeof cache[y]) === 'undefined') {
-                    cache[y] = {};
-                }
+                // if ((typeof cache[y]) === 'undefined') {
+                //     cache[y] = {};
+                // }
 
-                return cache[y][x] = i / maxIterations * 100;
+                // return cache[y][x] = i / maxIterations * 100;
+                
+                return i / maxIterations * 100;
             }
         }
 
@@ -202,15 +321,15 @@
                     if (maps.length > mapIndex + 1) {
                         var magnif = screenWidth * (maps[mapIndex + 1].magnif * .2) / width;
                         
-                        actualMangif = magnif;
+                        actualMagif = magnif;
                         
-                        renderMandel(cvs.getContext('2d'), actualMangif, hoverX, hoverY);
+                        renderMandel(cvs.getContext('2d'), actualMagif, hoverX, hoverY);
                         cvsImg = cvs.getContext('2d').getImageData(0, 0, screenWidth, screenHeight);
-                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
                     } else {
-                        renderMandel(cvs.getContext('2d'), actualMangif, hoverX, hoverY);
+                        renderMandel(cvs.getContext('2d'), actualMagif, hoverX, hoverY);
                         cvsImg = cvs.getContext('2d').getImageData(0, 0, screenWidth, screenHeight);
-                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
                     }
 
                     console.log(
@@ -257,6 +376,8 @@
         );
 
         renderMandel(ctx, magnif, centerX, centerY, 0, 0, width, height);
+        maps[index].img = ctx.getImageData(0, 0, width, height);
+
         renderMandel(ctxMinimap, screenWidth * magnif / width, centerX, centerY, 0, 0, screenWidth, screenHeight);
        
         // Draw Minimap Border
@@ -413,6 +534,29 @@
             ctx.strokeRect(0, 0, width, height);
 
             $(maps[index].cvs).parent().toggleClass('shadow', true);
+
+            cvsLargeCache.width = screenWidth * 3;
+            cvsLargeCache.height = screenHeight * 3;
+
+            renderMandel(
+                cvsLargeCache.getContext('2d'), actualMagif,
+                hoverX,
+                hoverY,
+                0,
+                0,
+                cvsLargeCache.width,
+                cvsLargeCache.height
+            );
+
+            cvsImg = cvsLargeCache.getContext('2d').getImageData(
+                0,
+                0,
+                cvsLargeCache.width,
+                cvsLargeCache.height
+            );
+
+            dragCurrentX = (screenWidth - cvsLargeCache.width) * .5;
+            dragCurrentY = (screenHeight - cvsLargeCache.height) * .5;
         }
 
     }
@@ -424,70 +568,70 @@
         }
     });
 
-    var actualMangif = 1000000000
+    var actualMagif = 1000000000
     var mapMagnif = 30
     var hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
     var hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
 
     console.log(hoverX, hoverY);
 
-    renderMandel(ctx, actualMangif, hoverX, hoverY);
+    renderMandel(ctx, actualMagif, hoverX, hoverY);
     cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-    renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+    renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
 
     $(document).keydown(function(e) {
         // Numpad +
         if (e.keyCode == 107 || e.keyCode == 187) {
-            actualMangif *= 2
+            actualMagif *= 2
 
-            renderMandel(ctx, actualMangif, hoverX, hoverY);
+            renderMandel(ctx, actualMagif, hoverX, hoverY);
             cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
         }
 
         // Numpad -
         if (e.keyCode == 109 || e.keyCode == 189) {
-            actualMangif *= 0.5
+            actualMagif *= 0.5
 
-            renderMandel(ctx, actualMangif, hoverX, hoverY);
+            renderMandel(ctx, actualMagif, hoverX, hoverY);
             cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
         }
 
         // ArrowUp
         if (e.keyCode == 38) {
-            hoverY += 100 / actualMangif
+            hoverY += 100 / actualMagif
 
-            renderMandel(ctx, actualMangif, hoverX, hoverY);
+            renderMandel(ctx, actualMagif, hoverX, hoverY);
             cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
         }
 
         // ArrowDown
         if (e.keyCode == 40) {
-            hoverY -= 100 / actualMangif
+            hoverY -= 100 / actualMagif
 
-            renderMandel(ctx, actualMangif, hoverX, hoverY);
+            renderMandel(ctx, actualMagif, hoverX, hoverY);
             cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
         }
 
         // ArrowLeft
         if (e.keyCode == 37) {
-            hoverX -= 100 / actualMangif
+            hoverX -= 100 / actualMagif
 
-            renderMandel(ctx, actualMangif, hoverX, hoverY);
+            renderMandel(ctx, actualMagif, hoverX, hoverY);
             cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
         }
 
         // ArrowRight
         if (e.keyCode == 39) {
-            hoverX += 100 / actualMangif
+            hoverX += 100 / actualMagif
 
-            renderMandel(ctx, actualMangif, hoverX, hoverY);
+            renderMandel(ctx, actualMagif, hoverX, hoverY);
             cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
         }
     });
 
