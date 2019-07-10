@@ -11,6 +11,40 @@
 
     var ctx = cvs.getContext('2d');
 
+    var cvsImg = null;
+    var dragStartX = null;
+    var dragStartY = null;
+    var dragCurrentX = null;
+    var dragCurrentY = null;
+
+    $(document).mousedown(function (e) {
+        dragStartX = e.offsetX;
+        dragStartY = e.offsetY;
+    });
+
+    $(document).mouseup(function (e) {
+        dragCurrentX += e.offsetX - dragStartX;
+        dragCurrentY += e.offsetY - dragStartY;
+
+        ctx.clearRect(0, 0, screenWidth, screenHeight);
+        ctx.putImageData(cvsImg, dragCurrentX, dragCurrentY);
+
+        // window.requestAnimationFrame(function(timestamp) {
+        //     console.log("requestAnimationFrame", timestamp);
+
+        //     hoverX += - dragCurrentX / actualMangif;
+        //     hoverY += dragCurrentY / actualMangif;
+    
+        //     renderMandel(ctx, actualMangif, hoverX, hoverY);
+        //     cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
+        //     renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
+    
+        //     dragCurrentX = 0;
+        //     dragCurrentY = 0;
+        // });
+
+    });
+
     var cvsMinimap = document.createElement('canvas');
     $('#visual-container').append(cvsMinimap);
     $(cvsMinimap).hide();
@@ -171,9 +205,11 @@
                         actualMangif = magnif;
                         
                         renderMandel(cvs.getContext('2d'), actualMangif, hoverX, hoverY);
+                        cvsImg = cvs.getContext('2d').getImageData(0, 0, screenWidth, screenHeight);
                         renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
                     } else {
                         renderMandel(cvs.getContext('2d'), actualMangif, hoverX, hoverY);
+                        cvsImg = cvs.getContext('2d').getImageData(0, 0, screenWidth, screenHeight);
                         renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
                     }
 
@@ -396,22 +432,25 @@
     console.log(hoverX, hoverY);
 
     renderMandel(ctx, actualMangif, hoverX, hoverY);
+    cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
     renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
 
     $(document).keydown(function(e) {
         // Numpad +
-        if (e.keyCode == 107) {
+        if (e.keyCode == 107 || e.keyCode == 187) {
             actualMangif *= 2
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
+            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
             renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
         }
 
         // Numpad -
-        if (e.keyCode == 109) {
+        if (e.keyCode == 109 || e.keyCode == 189) {
             actualMangif *= 0.5
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
+            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
             renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
         }
 
@@ -420,6 +459,7 @@
             hoverY += 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
+            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
             renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
         }
 
@@ -428,6 +468,7 @@
             hoverY -= 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
+            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
             renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
         }
 
@@ -436,6 +477,7 @@
             hoverX -= 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
+            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
             renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
         }
 
@@ -444,6 +486,7 @@
             hoverX += 100 / actualMangif
 
             renderMandel(ctx, actualMangif, hoverX, hoverY);
+            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
             renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMangif, hoverX, hoverY, screenWidth / actualMangif, screenHeight / actualMangif);
         }
     });
