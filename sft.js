@@ -1,5 +1,7 @@
 (function() {
 
+    Decimal.set({ precision: 256 });
+
     let screenWidth = 1920;
     let screenHeight = 978;
 
@@ -12,29 +14,34 @@
 
     let ctxMain = cvsMain.getContext('2d');
 
-    let magifMain = 1000;
+    let magifMain = 1000000000;
     // let magifMain = 10000000000000000000;
     let magifMainMaxIterations = getMaxIterations(magifMain);
     
-    let hoverX = new Decimal('0.3602404434376143632361252444495453084826078079585857504883758147401953460592');
-    let hoverY = new Decimal('0.6413130610648031748603750151793020665794949522823052595561775430644485741727');
+    // let hoverX = new Decimal('0.3602404434376143632361252444495453084826078079585857504883758147401953460592');
+    // let hoverY = new Decimal('0.6413130610648031748603750151793020665794949522823052595561775430644485741727');
 
-    // let hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
-    // let hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
+    let hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
+    let hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
 
     // let hoverX = 0;
     // let hoverY = 0;
 
     let iterations = [];
 
-    console.log(hoverX, hoverY);
+    console.log(
+        'magifMainMaxIterations', magifMainMaxIterations,
+        'hoverX', hoverX,
+        'hoverY', hoverY
+    );
 
-    
     let sftXn = [];
     let sftAn = [];
     let sftBn = [];
     let sftCn = [];
     let sftDn = [];
+
+    let sftXnMaxIterations = null;
 
     // renderMandel(ctxMain, magifMain, hoverX, hoverY);
     // renderMandelSFT(ctxMain, magifMain, hoverX, hoverY);
@@ -45,6 +52,18 @@
     // C{n+1} = 2 * X{n} * C{n} + 2 * A{n} * B{n}
     
     function sftInit(x, y, maxIterations) {
+        // let Xn_re = new Decimal(x);
+        // let Xn_im = new Decimal(y);
+        
+        // let An_re = new Decimal(1);
+        // let An_im = new Decimal(0);
+
+        // let Bn_re = new Decimal(0);
+        // let Bn_im = new Decimal(0);
+
+        // let Cn_re = new Decimal(0);
+        // let Cn_im = new Decimal(0);
+
         let Xn_re = x;
         let Xn_im = y;
         
@@ -60,24 +79,26 @@
         for (let i = 0; i < maxIterations; i++) {
             // let Xn_re_next = Xn_re.mul(Xn_re).sub(Xn_im.mul(Xn_im)).add(x);
             // let Xn_im_next = Xn_re.mul(Xn_im).mul(2).add(y);
+            // let Xn_norm = Xn_re.mul(Xn_re).add(Xn_im.mul(Xn_im));
 
-            // let An_re_next = Xn_re.mul(An_re).sub(Xn_im.mul(An_im)).mul(2).add(1);
-            // let An_im_next = Xn_im.mul(An_re).add(Xn_re.mul(An_im)).mul(2);
+            // let An_re_next = (Xn_re.mul(An_re).sub(Xn_im.mul(An_im))).mul(2).add(1);
+            // let An_im_next = (Xn_im.mul(An_re).add(Xn_re.mul(An_im))).mul(2);
 
-            // let Bn_re_next = Xn_re.mul(Bn_re).sub(Bn_im.mul(Bn_im)).mul(2).add(An_re.mul(An_re).sub(An_im.mul(An_im)));
-            // let Bn_im_next = Xn_im.mul(Bn_re).add(Bn_re.mul(Bn_im)).mul(2).add(An_re.mul(An_im).mul(2));
+            // let Bn_re_next = Xn_re.mul(Bn_re).sub(Xn_im.mul(Bn_im)).mul(2).add(An_re.mul(An_re).sub(An_im.mul(An_im)));
+            // let Bn_im_next = Xn_im.mul(Bn_re).add(Xn_re.mul(Bn_im)).mul(2).add(An_re.mul(An_im).mul(2));
 
             // let Cn_re_next = Xn_re.mul(Cn_re).sub(Xn_im.mul(Cn_im)).add(An_re.mul(Bn_re)).sub(An_im.mul(Bn_im)).mul(2);
             // let Cn_im_next = Xn_im.mul(Cn_re).add(Xn_re.mul(Cn_im)).add(An_im.mul(Bn_re)).add(An_re.mul(Bn_im)).mul(2);
 
             let Xn_re_next = Xn_re * Xn_re - Xn_im * Xn_im + x;
             let Xn_im_next = 2 * Xn_re * Xn_im + y;
+            let Xn_norm = Xn_re_next * Xn_re_next + Xn_im_next * Xn_im_next;
 
             let An_re_next = 2 * (Xn_re * An_re - Xn_im * An_im) + 1;
             let An_im_next = 2 * (Xn_im * An_re + Xn_re * An_im);
 
-            let Bn_re_next = 2 * (Xn_re * Bn_re - Bn_im * Bn_im) + An_re * An_re - An_im * An_im;
-            let Bn_im_next = 2 * (Xn_im * Bn_re + Bn_re * Bn_im) + 2 * An_re * An_im;
+            let Bn_re_next = 2 * (Xn_re * Bn_re - Xn_im * Bn_im) + An_re * An_re - An_im * An_im;
+            let Bn_im_next = 2 * (Xn_im * Bn_re + Xn_re * Bn_im) + 2 * An_re * An_im;
 
             let Cn_re_next = 2 * (Xn_re * Cn_re - Xn_im * Cn_im + An_re * Bn_re - An_im * Bn_im);
             let Cn_im_next = 2 * (Xn_im * Cn_re + Xn_re * Cn_im + An_im * Bn_re + An_re * Bn_im);
@@ -94,25 +115,48 @@
             Cn_re = Cn_re_next;
             Cn_im = Cn_im_next;
 
+            if (!isFinite(Xn_re) ||
+                !isFinite(Xn_im) ||
+                !isFinite(An_re) ||
+                !isFinite(An_im) ||
+                !isFinite(Bn_re) ||
+                !isFinite(Bn_im) ||
+                !isFinite(Cn_re) ||
+                !isFinite(Cn_im)
+            ) {
+                break;
+            }
+
+            // if (Xn_norm.gt(4)) {
+            //     break;
+            // }
+            
+            if (Xn_norm > 4) {
+                break;
+            }
+
+            sftXnMaxIterations = i;
+
             sftXn[i] = {
-                re: Xn_re_next, 
-                im: Xn_im_next, 
-                magsq: Xn_re_next * Xn_re_next + Xn_im_next * Xn_im_next,
+                re: Xn_re_next,
+                im: Xn_im_next,
+                norm: Xn_norm,
+                // normStr: Xn_norm.toString(),
             };
 
             sftAn[i] = {
-                re: An_re_next, 
-                im: An_im_next, 
+                re: An_re_next,
+                im: An_im_next,
             };
 
             sftBn[i] = {
-                re: Bn_re_next, 
-                im: Bn_im_next, 
+                re: Bn_re_next,
+                im: Bn_im_next,
             };
 
             sftCn[i] = {
-                re: Cn_re_next, 
-                im: Cn_im_next, 
+                re: Cn_re_next,
+                im: Cn_im_next,
             };
         }
     }
@@ -125,7 +169,7 @@
     console.log('sftCn', sftCn);
     console.log('sftDn', sftDn);
 
-    renderMandel(ctxMain, magifMain, hoverX, hoverY);
+    renderMandelSFT(ctxMain, magifMain, hoverX, hoverY);
 
     console.log('sftDn', sftDn);
 
@@ -133,134 +177,73 @@
     // Delta{n} = A{n} * d1 + B{n} * d2 + C{n} * d3 + o(d0^4)
 
     function sftGetIterations(x, y, d1, d2, d3, maxIterations) {
-        let searchStart = 0, searchEnd = maxIterations - 1;
+        let searchStart = 0;
+        let searchEnd = sftXnMaxIterations;
         let searchCenter = searchStart + searchEnd >> 1;
-        let foundIndex = null;
+        
+        let DeltaCurrentIterations_re;
+        let DeltaCurrentIterations_im;
+        
+        let DestX;
+        let DestY;
+        let DestNorm;
+
+        DeltaCurrentIterations_re = sftAn[searchEnd].re * d1.re - sftAn[searchEnd].im * d1.im;
+        DeltaCurrentIterations_im = sftAn[searchEnd].im * d1.re + sftAn[searchEnd].re * d1.im;
+
+        DeltaCurrentIterations_re += sftBn[searchEnd].re * d2.re - sftBn[searchEnd].im * d2.im;
+        DeltaCurrentIterations_im += sftBn[searchEnd].im * d2.re + sftBn[searchEnd].re * d2.im;
+
+        DeltaCurrentIterations_re += sftCn[searchEnd].re * d3.re - sftCn[searchEnd].im * d3.im;
+        DeltaCurrentIterations_im += sftCn[searchEnd].im * d3.re + sftCn[searchEnd].re * d3.im;
+        
+        DestY = DeltaCurrentIterations_im + y;
+        DestX = DeltaCurrentIterations_re + x;
+        DestNorm = DestX * DestX + DestY * DestY;
+
+        if (DestNorm <= 4) {
+            
+            // TODO: Step up
+            // Maybe: Update Xn
+
+            console.log('Stepping up with', DestX, DestY);
+
+            return searchEnd;
+        }
 
         while (true) {
-            // console.log('Searching in', searchStart, searchCenter, searchEnd);
 
-            let validStart, validCenter, validEnd;
+            // console.log('searching', searchCenter);
 
-            if (searchStart > sftXn.length - 1 ||
-                searchStart > sftAn.length - 1 ||
-                searchStart > sftBn.length - 1 || 
-                searchStart > sftCn.length - 1 ||
-                searchStart < 0 ||
-                !isFinite(sftXn[searchStart].re) ||
-                !isFinite(sftXn[searchStart].im) ||
-                !isFinite(sftAn[searchStart].re) ||
-                !isFinite(sftAn[searchStart].im) ||
-                !isFinite(sftBn[searchStart].re) ||
-                !isFinite(sftBn[searchStart].im) ||
-                !isFinite(sftCn[searchStart].re) ||
-                !isFinite(sftCn[searchStart].im) ||
-                false
-            ) {
-                validStart = false;
+            DeltaCurrentIterations_re = sftAn[searchCenter].re * d1.re - sftAn[searchCenter].im * d1.im;
+            DeltaCurrentIterations_im = sftAn[searchCenter].im * d1.re + sftAn[searchCenter].re * d1.im;
+    
+            DeltaCurrentIterations_re += sftBn[searchCenter].re * d2.re - sftBn[searchCenter].im * d2.im;
+            DeltaCurrentIterations_im += sftBn[searchCenter].im * d2.re + sftBn[searchCenter].re * d2.im;
+    
+            DeltaCurrentIterations_re += sftCn[searchCenter].re * d3.re - sftCn[searchCenter].im * d3.im;
+            DeltaCurrentIterations_im += sftCn[searchCenter].im * d3.re + sftCn[searchCenter].re * d3.im;
+            
+            DestY = DeltaCurrentIterations_im + y;
+            DestX = DeltaCurrentIterations_re + x;
+            DestNorm = DestX * DestX + DestY * DestY;
+
+            if (DestNorm > 4) {
+                if (searchStart < searchCenter) {
+                    searchEnd = searchCenter;
+                    searchCenter = searchStart + searchEnd >> 1;
+                } else {
+                    return searchStart > 0 ? searchStart : 0;
+                }
             } else {
-                validStart = true;
-            }
-
-            if (searchCenter > sftXn.length - 1 ||
-                searchCenter > sftAn.length - 1 ||
-                searchCenter > sftBn.length - 1 ||
-                searchCenter > sftCn.length - 1 ||
-                searchCenter < 0 ||
-                !isFinite(sftXn[searchCenter].re) ||
-                !isFinite(sftXn[searchCenter].im) ||
-                !isFinite(sftAn[searchCenter].re) ||
-                !isFinite(sftAn[searchCenter].im) ||
-                !isFinite(sftBn[searchCenter].re) ||
-                !isFinite(sftBn[searchCenter].im) ||
-                !isFinite(sftCn[searchCenter].re) ||
-                !isFinite(sftCn[searchCenter].im) ||
-                false
-            ) {
-                validCenter = false;
-            } else {
-                validCenter = true;
-            }
-
-            if (searchEnd > sftXn.length - 1 ||
-                searchEnd > sftAn.length - 1 ||
-                searchEnd > sftBn.length - 1 || 
-                searchEnd > sftCn.length - 1 ||
-                searchEnd < 0 ||
-                !isFinite(sftXn[searchEnd].re) ||
-                !isFinite(sftXn[searchEnd].im) ||
-                !isFinite(sftAn[searchEnd].re) ||
-                !isFinite(sftAn[searchEnd].im) ||
-                !isFinite(sftBn[searchEnd].re) ||
-                !isFinite(sftBn[searchEnd].im) ||
-                !isFinite(sftCn[searchEnd].re) ||
-                !isFinite(sftCn[searchEnd].im) ||
-                false
-            ) {
-                validEnd = false;
-            } else {
-                validEnd = true;
-            }
-
-            console.log(
-                'validStart', validStart,
-                'validCenter', validCenter,
-                'validEnd', validEnd
-            );
-
-            if (validStart && validCenter && validEnd) {
-                foundIndex = searchEnd;
-                break; 
-            }
-
-            if (validStart && validCenter && !validEnd) {
                 if (searchStart < searchCenter) {
                     searchStart = searchCenter;
                     searchCenter = searchStart + searchEnd >> 1;
-
-                    continue;
                 } else {
-                    foundIndex = searchStart;
-                    break;
+                    return searchEnd;
                 }
             }
-
-            if (validStart && !validCenter && !validEnd) {
-                if (validCenter < searchCenter) {
-                    searchEnd = searchCenter;
-                    searchCenter = searchStart + searchEnd >> 1;
-
-                    continue;
-                } else {
-                    foundIndex = searchStart;
-                    break;
-                }
-            }
-
-            break;
         }
-
-        console.log('foundIndex', foundIndex);
-
-        let DeltaCurrentIterations_re;
-        let DeltaCurrentIterations_im;
-
-        if (foundIndex) {
-            
-            DeltaCurrentIterations_re = sftAn[foundIndex].re * d1.re - sftAn[foundIndex].im * d1.im;
-            DeltaCurrentIterations_im = sftAn[foundIndex].im * d1.re + sftAn[foundIndex].re * d1.im;
-    
-            DeltaCurrentIterations_re += sftBn[foundIndex].re * d2.re - sftBn[foundIndex].im * d2.im;
-            DeltaCurrentIterations_im += sftBn[foundIndex].im * d2.re + sftBn[foundIndex].re * d2.im;
-    
-            DeltaCurrentIterations_re += sftCn[foundIndex].re * d3.re - sftCn[foundIndex].im * d3.im;
-            DeltaCurrentIterations_im += sftCn[foundIndex].im * d3.re + sftCn[foundIndex].re * d3.im;
-        }
-
-        console.log(
-            'DeltaCurrentIterations_re', DeltaCurrentIterations_re,
-            'DeltaCurrentIterations_im', DeltaCurrentIterations_im
-        );
     }
 
     function renderMandelSFT(ctx, magnif = 1000, centerX = 0, centerY = 0, startX = 0, startY = 0, width = null, height = null) {
@@ -323,6 +306,8 @@
 
                 let iterations = sftGetIterations(centerX, centerY, d1, d2, d3, maxIterations);
 
+                // console.log('Pixel final iterations', iterations);
+
                 sftDn.push({
                     d1: d1,
                     d2: d2,
@@ -337,7 +322,7 @@
 
                 let belongsToSet = 0;
 
-                ctx.fillStyle = 'hsl(0, 100%, ' + (belongsToSet * 100 / maxIterations) + '%)';
+                ctx.fillStyle = 'hsl(0, 100%, ' + (iterations * 100 / maxIterations) + '%)';
                 ctx.fillRect(x, y, 1, 1);
 
                 pixelCounter ++;
@@ -352,8 +337,8 @@
     }
 
     function belongsToMandel(x, y, maxIterations) {
-        let re = x;
-        let im = y;
+        let re = new Decimal(x);
+        let im = new Decimal(y);
 
         let re2 = x.mul(x);
         let im2 = y.mul(y);
@@ -425,7 +410,9 @@
                         maxIterations
                     );
 
-                widthStepCurrent.add(widthStep);
+                widthStepCurrent = widthStepCurrent.add(widthStep);
+                
+                // return;
 
                 // let rgb = belongsToSet / 100 * 0xFFFFFF >> 0;
 
@@ -439,7 +426,7 @@
                 pixelCounter ++;
             }
 
-            heightStepCurrent.add(heightStep);
+            heightStepCurrent = heightStepCurrent.add(heightStep);
         }
 
         console.log('No. of pixels rendered:', pixelCounter);
