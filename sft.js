@@ -1,6 +1,6 @@
 (function() {
 
-    Decimal.set({ precision: 256 });
+    Decimal.set({ precision: 64 });
 
     let screenWidth = 1920;
     let screenHeight = 978;
@@ -18,11 +18,11 @@
     // let magifMain = 10000000000000000000;
     let magifMainMaxIterations = getMaxIterations(magifMain);
     
-    // let hoverX = new Decimal('0.3602404434376143632361252444495453084826078079585857504883758147401953460592');
-    // let hoverY = new Decimal('0.6413130610648031748603750151793020665794949522823052595561775430644485741727');
+    let hoverX = new Decimal('0.3602404434376143632361252444495453084826078079585857504883758147401953460592');
+    let hoverY = new Decimal('0.6413130610648031748603750151793020665794949522823052595561775430644485741727');
 
-    let hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
-    let hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
+    // let hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
+    // let hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
 
     // let hoverX = 0;
     // let hoverY = 0;
@@ -52,56 +52,56 @@
     // C{n+1} = 2 * X{n} * C{n} + 2 * A{n} * B{n}
     
     function sftInit(x, y, maxIterations) {
-        // let Xn_re = new Decimal(x);
-        // let Xn_im = new Decimal(y);
+        let Xn_re = new Decimal(x);
+        let Xn_im = new Decimal(y);
         
-        // let An_re = new Decimal(1);
-        // let An_im = new Decimal(0);
+        let An_re = new Decimal(1);
+        let An_im = new Decimal(0);
 
-        // let Bn_re = new Decimal(0);
-        // let Bn_im = new Decimal(0);
+        let Bn_re = new Decimal(0);
+        let Bn_im = new Decimal(0);
 
-        // let Cn_re = new Decimal(0);
-        // let Cn_im = new Decimal(0);
+        let Cn_re = new Decimal(0);
+        let Cn_im = new Decimal(0);
 
-        let Xn_re = x;
-        let Xn_im = y;
+        // let Xn_re = x;
+        // let Xn_im = y;
         
-        let An_re = 1;
-        let An_im = 0;
+        // let An_re = 1;
+        // let An_im = 0;
 
-        let Bn_re = 0;
-        let Bn_im = 0;
+        // let Bn_re = 0;
+        // let Bn_im = 0;
 
-        let Cn_re = 0;
-        let Cn_im = 0;
+        // let Cn_re = 0;
+        // let Cn_im = 0;
 
         for (let i = 0; i < maxIterations; i++) {
-            // let Xn_re_next = Xn_re.mul(Xn_re).sub(Xn_im.mul(Xn_im)).add(x);
-            // let Xn_im_next = Xn_re.mul(Xn_im).mul(2).add(y);
-            // let Xn_norm = Xn_re.mul(Xn_re).add(Xn_im.mul(Xn_im));
+            let Xn_re_next = Xn_re.mul(Xn_re).sub(Xn_im.mul(Xn_im)).add(x);
+            let Xn_im_next = Xn_re.mul(Xn_im).mul(2).add(y);
+            let Xn_norm = Xn_re.mul(Xn_re).add(Xn_im.mul(Xn_im));
 
-            // let An_re_next = (Xn_re.mul(An_re).sub(Xn_im.mul(An_im))).mul(2).add(1);
-            // let An_im_next = (Xn_im.mul(An_re).add(Xn_re.mul(An_im))).mul(2);
+            let An_re_next = (Xn_re.mul(An_re).sub(Xn_im.mul(An_im))).mul(2).add(1);
+            let An_im_next = (Xn_im.mul(An_re).add(Xn_re.mul(An_im))).mul(2);
 
-            // let Bn_re_next = Xn_re.mul(Bn_re).sub(Xn_im.mul(Bn_im)).mul(2).add(An_re.mul(An_re).sub(An_im.mul(An_im)));
-            // let Bn_im_next = Xn_im.mul(Bn_re).add(Xn_re.mul(Bn_im)).mul(2).add(An_re.mul(An_im).mul(2));
+            let Bn_re_next = (Xn_re.mul(Bn_re).sub(Xn_im.mul(Bn_im)).mul(2)).add(An_re.mul(An_re).sub(An_im.mul(An_im)));
+            let Bn_im_next = (Xn_im.mul(Bn_re).add(Xn_re.mul(Bn_im)).mul(2)).add(An_re.mul(An_im).mul(2));
 
-            // let Cn_re_next = Xn_re.mul(Cn_re).sub(Xn_im.mul(Cn_im)).add(An_re.mul(Bn_re)).sub(An_im.mul(Bn_im)).mul(2);
-            // let Cn_im_next = Xn_im.mul(Cn_re).add(Xn_re.mul(Cn_im)).add(An_im.mul(Bn_re)).add(An_re.mul(Bn_im)).mul(2);
+            let Cn_re_next = (Xn_re.mul(Cn_re).sub(Xn_im.mul(Cn_im)).add(An_re.mul(Bn_re)).sub(An_im.mul(Bn_im))).mul(2);
+            let Cn_im_next = (Xn_im.mul(Cn_re).add(Xn_re.mul(Cn_im)).add(An_im.mul(Bn_re)).add(An_re.mul(Bn_im))).mul(2);
 
-            let Xn_re_next = Xn_re * Xn_re - Xn_im * Xn_im + x;
-            let Xn_im_next = 2 * Xn_re * Xn_im + y;
-            let Xn_norm = Xn_re_next * Xn_re_next + Xn_im_next * Xn_im_next;
+            // let Xn_re_next = Xn_re * Xn_re - Xn_im * Xn_im + x;
+            // let Xn_im_next = 2 * Xn_re * Xn_im + y;
+            // let Xn_norm = Xn_re_next * Xn_re_next + Xn_im_next * Xn_im_next;
 
-            let An_re_next = 2 * (Xn_re * An_re - Xn_im * An_im) + 1;
-            let An_im_next = 2 * (Xn_im * An_re + Xn_re * An_im);
+            // let An_re_next = 2 * (Xn_re * An_re - Xn_im * An_im) + 1;
+            // let An_im_next = 2 * (Xn_im * An_re + Xn_re * An_im);
 
-            let Bn_re_next = 2 * (Xn_re * Bn_re - Xn_im * Bn_im) + An_re * An_re - An_im * An_im;
-            let Bn_im_next = 2 * (Xn_im * Bn_re + Xn_re * Bn_im) + 2 * An_re * An_im;
+            // let Bn_re_next = 2 * (Xn_re * Bn_re - Xn_im * Bn_im) + An_re * An_re - An_im * An_im;
+            // let Bn_im_next = 2 * (Xn_im * Bn_re + Xn_re * Bn_im) + 2 * An_re * An_im;
 
-            let Cn_re_next = 2 * (Xn_re * Cn_re - Xn_im * Cn_im + An_re * Bn_re - An_im * Bn_im);
-            let Cn_im_next = 2 * (Xn_im * Cn_re + Xn_re * Cn_im + An_im * Bn_re + An_re * Bn_im);
+            // let Cn_re_next = 2 * (Xn_re * Cn_re - Xn_im * Cn_im + An_re * Bn_re - An_im * Bn_im);
+            // let Cn_im_next = 2 * (Xn_im * Cn_re + Xn_re * Cn_im + An_im * Bn_re + An_re * Bn_im);
 
             Xn_re = Xn_re_next;
             Xn_im = Xn_im_next;
@@ -115,25 +115,37 @@
             Cn_re = Cn_re_next;
             Cn_im = Cn_im_next;
 
-            if (!isFinite(Xn_re) ||
-                !isFinite(Xn_im) ||
-                !isFinite(An_re) ||
-                !isFinite(An_im) ||
-                !isFinite(Bn_re) ||
-                !isFinite(Bn_im) ||
-                !isFinite(Cn_re) ||
-                !isFinite(Cn_im)
+            if (!Xn_re.isFinite() ||
+                !Xn_im.isFinite() ||
+                !An_re.isFinite() ||
+                !An_im.isFinite() ||
+                !Bn_re.isFinite() ||
+                !Bn_im.isFinite() ||
+                !Cn_re.isFinite() ||
+                !Cn_im.isFinite()
             ) {
                 break;
             }
+
+            // if (!isFinite(Xn_re) ||
+            //     !isFinite(Xn_im) ||
+            //     !isFinite(An_re) ||
+            //     !isFinite(An_im) ||
+            //     !isFinite(Bn_re) ||
+            //     !isFinite(Bn_im) ||
+            //     !isFinite(Cn_re) ||
+            //     !isFinite(Cn_im)
+            // ) {
+            //     break;
+            // }
 
             // if (Xn_norm.gt(4)) {
             //     break;
             // }
             
-            if (Xn_norm > 4) {
-                break;
-            }
+            // if (Xn_norm > 4) {
+            //     break;
+            // }
 
             sftXnMaxIterations = i;
 
@@ -176,7 +188,7 @@
     // Delta{n} = A{n} * d1 + B{n} * d0^2 + C{n} * d0^3 + o(d0^4)
     // Delta{n} = A{n} * d1 + B{n} * d2 + C{n} * d3 + o(d0^4)
 
-    function sftGetIterations(x, y, d1, d2, d3, maxIterations) {
+    function sftGetIterations(d1, d2, d3, maxIterations) {
         let searchStart = 0;
         let searchEnd = sftXnMaxIterations;
         let searchCenter = searchStart + searchEnd >> 1;
@@ -188,25 +200,39 @@
         let DestY;
         let DestNorm;
 
-        DeltaCurrentIterations_re = sftAn[searchEnd].re * d1.re - sftAn[searchEnd].im * d1.im;
-        DeltaCurrentIterations_im = sftAn[searchEnd].im * d1.re + sftAn[searchEnd].re * d1.im;
+        DeltaCurrentIterations_re = sftAn[searchEnd].re.mul(d1.re).sub(sftAn[searchEnd].im.mul(d1.im));
+        DeltaCurrentIterations_im = sftAn[searchEnd].im.mul(d1.re).add(sftAn[searchEnd].re.mul(d1.im));
 
-        DeltaCurrentIterations_re += sftBn[searchEnd].re * d2.re - sftBn[searchEnd].im * d2.im;
-        DeltaCurrentIterations_im += sftBn[searchEnd].im * d2.re + sftBn[searchEnd].re * d2.im;
+        DeltaCurrentIterations_re = DeltaCurrentIterations_re.add(sftBn[searchEnd].re.mul(d2.re).sub(sftBn[searchEnd].im.mul(d2.im)));
+        DeltaCurrentIterations_im = DeltaCurrentIterations_im.add(sftBn[searchEnd].im.mul(d2.re).add(sftBn[searchEnd].re.mul(d2.im)));
 
-        DeltaCurrentIterations_re += sftCn[searchEnd].re * d3.re - sftCn[searchEnd].im * d3.im;
-        DeltaCurrentIterations_im += sftCn[searchEnd].im * d3.re + sftCn[searchEnd].re * d3.im;
+        DeltaCurrentIterations_re = DeltaCurrentIterations_re.add(sftCn[searchEnd].re.mul(d3.re).sub(sftCn[searchEnd].im.mul(d3.im)));
+        DeltaCurrentIterations_im = DeltaCurrentIterations_im.add(sftCn[searchEnd].im.mul(d3.re).add(sftCn[searchEnd].re.mul(d3.im)));
         
-        DestY = DeltaCurrentIterations_im + y;
-        DestX = DeltaCurrentIterations_re + x;
-        DestNorm = DestX * DestX + DestY * DestY;
+        DestX = DeltaCurrentIterations_re.add(sftXn[searchEnd].re);
+        DestY = DeltaCurrentIterations_im.add(sftXn[searchEnd].im);
+        DestNorm = DestX.mul(DestX).add(DestY.mul(DestY));
 
-        if (DestNorm <= 4) {
+        // DeltaCurrentIterations_re = sftAn[searchEnd].re * d1.re - sftAn[searchEnd].im * d1.im;
+        // DeltaCurrentIterations_im = sftAn[searchEnd].im * d1.re + sftAn[searchEnd].re * d1.im;
+
+        // DeltaCurrentIterations_re += sftBn[searchEnd].re * d2.re - sftBn[searchEnd].im * d2.im;
+        // DeltaCurrentIterations_im += sftBn[searchEnd].im * d2.re + sftBn[searchEnd].re * d2.im;
+
+        // DeltaCurrentIterations_re += sftCn[searchEnd].re * d3.re - sftCn[searchEnd].im * d3.im;
+        // DeltaCurrentIterations_im += sftCn[searchEnd].im * d3.re + sftCn[searchEnd].re * d3.im;
+        
+        // DestX = DeltaCurrentIterations_re + sftXn[searchEnd].re;
+        // DestY = DeltaCurrentIterations_im + sftXn[searchEnd].im;
+        // DestNorm = DestX * DestX + DestY * DestY;
+
+        if (DestNorm.lte(4)) {
+        // if (DestNorm <= 4) {
             
             // TODO: Step up
             // Maybe: Update Xn
 
-            console.log('Stepping up with', DestX, DestY);
+            console.log('Stepping up with', DestX.toString(), DestY.toString());
 
             return searchEnd;
         }
@@ -215,20 +241,34 @@
 
             // console.log('searching', searchCenter);
 
-            DeltaCurrentIterations_re = sftAn[searchCenter].re * d1.re - sftAn[searchCenter].im * d1.im;
-            DeltaCurrentIterations_im = sftAn[searchCenter].im * d1.re + sftAn[searchCenter].re * d1.im;
+            DeltaCurrentIterations_re = sftAn[searchCenter].re.mul(d1.re).sub(sftAn[searchCenter].im.mul(d1.im));
+            DeltaCurrentIterations_im = sftAn[searchCenter].im.mul(d1.re).add(sftAn[searchCenter].re.mul(d1.im));
     
-            DeltaCurrentIterations_re += sftBn[searchCenter].re * d2.re - sftBn[searchCenter].im * d2.im;
-            DeltaCurrentIterations_im += sftBn[searchCenter].im * d2.re + sftBn[searchCenter].re * d2.im;
+            DeltaCurrentIterations_re = DeltaCurrentIterations_re.add(sftBn[searchCenter].re.mul(d2.re).sub(sftBn[searchCenter].im.mul(d2.im)));
+            DeltaCurrentIterations_im = DeltaCurrentIterations_im.add(sftBn[searchCenter].im.mul(d2.re).add(sftBn[searchCenter].re.mul(d2.im)));
     
-            DeltaCurrentIterations_re += sftCn[searchCenter].re * d3.re - sftCn[searchCenter].im * d3.im;
-            DeltaCurrentIterations_im += sftCn[searchCenter].im * d3.re + sftCn[searchCenter].re * d3.im;
+            DeltaCurrentIterations_re = DeltaCurrentIterations_re.add(sftCn[searchCenter].re.mul(d3.re).sub(sftCn[searchCenter].im.mul(d3.im)));
+            DeltaCurrentIterations_im = DeltaCurrentIterations_im.add(sftCn[searchCenter].im.mul(d3.re).add(sftCn[searchCenter].re.mul(d3.im)));
             
-            DestY = DeltaCurrentIterations_im + y;
-            DestX = DeltaCurrentIterations_re + x;
-            DestNorm = DestX * DestX + DestY * DestY;
+            DestX = DeltaCurrentIterations_re.add(sftXn[searchCenter].re);
+            DestY = DeltaCurrentIterations_im.add(sftXn[searchCenter].im);
+            DestNorm = DestX.mul(DestX).add(DestY.mul(DestY));
 
-            if (DestNorm > 4) {
+            // DeltaCurrentIterations_re = sftAn[searchCenter].re * d1.re - sftAn[searchCenter].im * d1.im;
+            // DeltaCurrentIterations_im = sftAn[searchCenter].im * d1.re + sftAn[searchCenter].re * d1.im;
+    
+            // DeltaCurrentIterations_re += sftBn[searchCenter].re * d2.re - sftBn[searchCenter].im * d2.im;
+            // DeltaCurrentIterations_im += sftBn[searchCenter].im * d2.re + sftBn[searchCenter].re * d2.im;
+    
+            // DeltaCurrentIterations_re += sftCn[searchCenter].re * d3.re - sftCn[searchCenter].im * d3.im;
+            // DeltaCurrentIterations_im += sftCn[searchCenter].im * d3.re + sftCn[searchCenter].re * d3.im;
+            
+            // DestX = DeltaCurrentIterations_re + sftXn[searchCenter].re;
+            // DestY = DeltaCurrentIterations_im + sftXn[searchCenter].im;
+            // DestNorm = DestX * DestX + DestY * DestY;
+
+            if (DestNorm.gt(4)) {
+            // if (DestNorm > 4) {
                 if (searchStart < searchCenter) {
                     searchEnd = searchCenter;
                     searchCenter = searchStart + searchEnd >> 1;
@@ -304,15 +344,11 @@
                 };
 
 
-                let iterations = sftGetIterations(centerX, centerY, d1, d2, d3, maxIterations);
+                let iterations = sftGetIterations(d1, d2, d3, maxIterations);
 
-                // console.log('Pixel final iterations', iterations);
-
-                sftDn.push({
-                    d1: d1,
-                    d2: d2,
-                    d3: d3,
-                });
+                if (pixelCounter % 32767 === 0) {
+                    console.log('Pixel final iterations', iterations, ', current pixel counter', pixelCounter);
+                }
 
                 // let rgb = belongsToSet / 100 * 0xFFFFFF >> 0;
 
