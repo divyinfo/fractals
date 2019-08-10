@@ -1,637 +1,895 @@
 (function() {
 
-    screenWidth = 1440;
-    screenHeight = 821;
-
-    var cvs = document.createElement('canvas');
-    
-    var cvsLargeCache = document.createElement('canvas');
-
-    $('#visual-container').append(cvs);
-
-    cvs.width = screenWidth;
-    cvs.height = screenHeight;
-
-    var ctx = cvs.getContext('2d');
-
-    var cvsImg = null;
-    var dragStartX = null;
-    var dragStartY = null;
-    var dragCurrentMouseX = null;
-    var dragCurrentMouseY = null;
-    var dragCurrentX = null;
-    var dragCurrentY = null;
-    var dragGlobalID = null;
-
-    $('#visual-container').mousedown(function (e) {
-        dragStartX = dragCurrentMouseX = e.offsetX;
-        dragStartY = dragCurrentMouseY = e.offsetY;
-
-        if (!dragGlobalID) {
-            dragGlobalID = window.requestAnimationFrame(step);
-            console.log('dragging start');
+    class MandelWorker {
+        constructor(canvas = null, context = null, doneCallback = null, callbackThis = null) {
+            this.working = false;
+            
+            this.worker = new Worker('naive-worker.js');
+            this.worker.onmessage = this.workerResponse.bind(this);
+            
+            this.canvas = canvas;
+            this.context = context;
+            
+            this.doneCallback = doneCallback;
+            this.callbackThis = callbackThis;
         }
-    });
 
-    function step(timestamp) {
-        if (dragCurrentMouseX - dragStartX !== 0 || dragCurrentMouseY - dragStartY !== 0) {
+        work(magnif, centerX, centerY, width, height, callback = null, callbackThis = null) {
+            if (this.working) {
+                console.log('Worker terminated. Starting new worker.');
 
-            dragCurrentX += dragCurrentMouseX - dragStartX;
-            dragCurrentY += dragCurrentMouseY - dragStartY;
+                this.worker.terminate();
 
-            dragStartX = dragCurrentMouseX;
-            dragStartY = dragCurrentMouseY;
+                this.worker = new Worker('naive-worker.js');
+                this.worker.onmessage = this.workerResponse.bind(this);
+            }
+
+            this.working = true;
+            this.doneCallback = callback;
+            this.callbackThis = callbackThis;
+
+            this.worker.postMessage({
+                magnif: magnif,
+                centerX: centerX,
+                centerY: centerY,
+                width: width,
+                height: height,
+            });
+
+            // console.log(
+            //     'Message posted to worker with params',
+            //     'magnif', magnif,
+            //     'centerX', centerX,
+            //     'centerY', centerY,
+            //     'width', width,
+            //     'height', height,
+            //     'EOL'
+            // );
+        }
+
+        workerResponse(e) {
+            // console.log('MandelWorker received message', this, e);
+
+            if (e.data.final) {
+                this.working = false;
+            }
+
+            if (this.doneCallback) {
+                this.doneCallback.apply(this.callbackThis, [e]);
+
+                return;
+            }
+
+            if (e.data.final) {
+
+                // console.log('MandelWorker Native Message: Received e', e, ', received e.data', e.data);
+
+                let img = e.data.img;
+
+                if (this.canvas && this.context) {
+                    this.context.putImageData(e.data.img, this.canvas.width - img.width >> 1, this.canvas.height - img.height >> 1);
+                }
+            }
+        }
+    }
+
+    class MapVisualPair {
+        constructor() {
+            this.visCanvas = null;
+            this.mapCanvas = null;
+            this.previewCanvas = null;
+
+            this.visContext = null;
+            this.mapContext = null;
+            this.previewContext = null;
+
+            this.visImg = null;
+            this.mapImg = null;
+            this.previewImg = null;
+
+            this.visWorker = new MandelWorker;
+            this.mapWorker = new MandelWorker;
+
+            this.visMagnif = 10000;
+            this.mapMagnif = 1000;
+
+            this.visCenterX = 0;
+            this.visCenterY = 0;
+
+            this.visImgOffsetX = 0;
+            this.visImgOffsetY = 0;
+
+            this.mapCenterX = 0;
+            this.mapCenterY = 0;
+
+            this.disablePartialEffects = false;
+        }
+
+        init(visCanvas, mapCanvas, previewCanvas) {
+            this.visCanvas = visCanvas;
+            this.mapCanvas = mapCanvas;
+            this.previewCanvas = previewCanvas;
+
+            this.visContext = visCanvas.getContext('2d');
+            this.mapContext = mapCanvas.getContext('2d');
+            this.previewContext = previewCanvas.getContext('2d');
+
+            if ($(mapCanvas).data('jq-mouseover-attached') && $(mapCanvas).data('jq-mouseover-target') !== this) {
+                $(mapCanvas).off();
+                
+                $(mapCanvas).removeData('jq-mouseover-attached');
+                $(mapCanvas).removeData('jq-mouseover-target');
+            }
+
+            if (!$(mapCanvas).data('jq-mouseover-attached')) {
+                
+                $(mapCanvas).data('jq-mouseover-attached', true);
+                $(mapCanvas).data('jq-mouseover-target', this);
+
+                $(mapCanvas).mouseover(function (e) {
+                    // console.log('Mouse over', e);
+
+                    let currentPair = $(this).data('jq-mouseover-target');
+
+                    if (!currentPair) {
+                        return;
+                    }
+
+                    let li = $(mapCanvas).parent();
+
+                    li.prev().toggleClass('nearby', true);
+                    li.next().toggleClass('nearby', true);
+
+                    if (currentPair) {
+
+                        if (currentPair.previewContext && currentPair.previewImg) {
+                            currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
+                            currentPair.drawHoverArea();
+                        }
+
+                        $(currentPair.previewCanvas).stop().fadeTo(400, Math.random() * 0.15 + 0.85);
+                    }
     
-            ctx.clearRect(0, 0, screenWidth, screenHeight);
-            ctx.putImageData(cvsImg, dragCurrentX, dragCurrentY);
-            // ctx.putImageData(cvsImg, dragCurrentX, dragCurrentY,
-            //     dragCurrentX > 0 ? 0 : - dragCurrentX,
-            //     dragCurrentY > 0 ? 0 : - dragCurrentY,
-            //     dragCurrentX > 0 ? screenWidth - dragCurrentX : screenWidth + dragCurrentX,
-            //     dragCurrentY > 0 ? screenHeight - dragCurrentY : screenHeight + dragCurrentY
+                });
+    
+                $(mapCanvas).mouseout(function (e) {
+                    // console.log('Mouse out', e);
+
+                    let currentPair = $(this).data('jq-mouseover-target');
+
+                    if (!currentPair) {
+                        return;
+                    }
+
+                    let li = $(mapCanvas).parent();
+
+                    li.prev().removeClass('nearby');
+                    li.next().removeClass('nearby');
+
+                    if (currentPair) {
+                        if (currentPair.previewContext && currentPair.previewImg) {
+                            currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
+                            currentPair.drawHoverArea();
+                        }
+
+                        $(currentPair.previewCanvas).stop().fadeTo(400, 0);
+                    }
+                });
+            }
+        }
+
+        drawHoverArea(offsetRealX = 0, offsetRealY = 0) {
+            if (this.mapImg) {
+                this.mapContext.putImageData(this.mapImg, 0, 0);
+            }
+
+            if (this.previewImg) {
+                this.previewContext.putImageData(this.previewImg, 0, 0);
+            }
+
+            let areaRealWidth = this.visCanvas.width / this.visMagnif;
+            let areaRealHeight = this.visCanvas.height / this.visMagnif;
+
+            let areaRealStartX = offsetRealX + this.visCenterX - areaRealWidth * .5 - this.mapCenterX;
+            let areaRealStartY = offsetRealY + this.visCenterY + areaRealHeight * .5 - this.mapCenterY;
+
+            let strokeX = this.previewCanvas.width * .5 + areaRealStartX * this.mapMagnif;
+            let strokeY = this.previewCanvas.height * .5 - areaRealStartY * this.mapMagnif;
+            let strokeW = areaRealWidth * this.mapMagnif;
+            let strokeH = areaRealHeight * this.mapMagnif;
+
+            if (strokeW <= 1) {
+                strokeW = 1;
+            }
+
+            if (strokeH <= 1) {
+                strokeH = 1;
+            }
+
+            this.previewContext.beginPath();
+            this.previewContext.lineWidth = 1;
+            this.previewContext.strokeStyle = 'rgba(255, 0, 255, 1)';
+            this.previewContext.strokeRect(
+                strokeX,
+                strokeY,
+                strokeW,
+                strokeH
+            );
+
+            // console.log(
+            //     'this.visMagnif', this.visMagnif,
+            //     'this.mapMagnif', this.mapMagnif,
+            //     this.previewImg,
+            //     this.mapImg,
+            //     'map',
+            //     this.mapCenterX,
+            //     this.mapCenterY,
+            //     'vis',
+            //     this.visCenterX,
+            //     this.visCenterY,
+            //     'strokeW', strokeW,
+            //     'strokeH', strokeH,
+            //     'EOL'
             // );
 
-            // hoverX += - dragCurrentX / actualMagif;
-            // hoverY += dragCurrentY / actualMagif;
+            strokeX = strokeX * this.mapCanvas.width / this.previewCanvas.width;
+            strokeY = strokeY * this.mapCanvas.height / this.previewCanvas.height;
+            strokeW = strokeW * this.mapCanvas.width / this.previewCanvas.width;
+            strokeH = strokeH * this.mapCanvas.height / this.previewCanvas.height;
 
-            for (let i = 0; i < maps.length; i++) {
-                if ($(maps[i].cvs).parent().hasClass('shadow')) {
+            if (strokeW <= 1) {
+                strokeW = 1;
+            }
 
-                    let ctx = maps[i].ctx;
-                    let magnif = maps[i].magnif;
-                    
-                    let width = maps[i].cvs.width;
-                    let height = maps[i].cvs.height;
-                    
-                    let hoverWidth = screenWidth / actualMagif;
-                    let hoverHeight = screenHeight / actualMagif;
+            if (strokeH <= 1) {
+                strokeH = 1;
+            }
 
-                    let hoverStartX = hoverX - (dragCurrentX - (screenWidth - cvsLargeCache.width) * .5 ) / actualMagif - hoverWidth * .5 - maps[i].centerX;
-                    let hoverStartY = hoverY + (dragCurrentY - (screenHeight - cvsLargeCache.height) * .5 ) / actualMagif + hoverHeight * .5 - maps[i].centerY;
-                    
-                    strokeX = width * .5 + hoverStartX * magnif;
-                    strokeY = height * .5 - hoverStartY * magnif;
-                    strokeW = hoverWidth * magnif;
-                    strokeH = hoverHeight * magnif;
-                    
-                    if (strokeW <= 1) {
-                        strokeW = 1
-                    }
-                    
-                    if (strokeH <= 1) {
-                        strokeH = 1
-                    }
+            this.mapContext.beginPath();
+            this.mapContext.lineWidth = 1;
+            this.mapContext.strokeStyle = 'rgba(255, 0, 255, 1)';
+            this.mapContext.strokeRect(
+                strokeX,
+                strokeY,
+                strokeW,
+                strokeH
+            );
+        }
 
-                    let img = null;
-                    if (typeof maps[i].img === 'undefined') {
-                        img = maps[i].img = ctx.getImageData(0, 0, maps[i].cvs.width, maps[i].cvs.height);
-                    } else {
-                        img = maps[i].img;
-                    }
-                    
-                    ctx.clearRect(0, 0, maps[i].cvs.width, maps[i].cvs.height);
-                    ctx.putImageData(img, 0, 0);
-            
-                    ctx.beginPath();
-                    ctx.lineWidth = 1;
-                    ctx.strokeStyle = 'rgba(255, 0, 255, 1)';
-                    ctx.strokeRect(
-                        strokeX,
-                        strokeY,
-                        strokeW,
-                        strokeH
+        moveTo(x = null, y = null) {
+            if (x !== null) {
+                this.visCenterX = x;
+            }
+
+            if (y !== null) {
+                this.visCenterY = y;
+            }
+
+            $(this.visCanvas).parent().toggleClass('loading', true);
+            $(this.mapCanvas).parent().toggleClass('loading', true);
+
+            this.visWorker.work(this.visMagnif, this.visCenterX, this.visCenterY, this.visCanvas.width << 1, this.visCanvas.height << 1, (e) => {
+                if (e.data.final === false && typeof e.data.partStartY !== 'undefined' && typeof e.data.partHeight !== 'undefined') {
+                    // console.log('Received partial render result', e.data.partStartY, 'height', e.data.partHeight);
+
+                    let imgPart = e.data.img;
+
+                    this.visContext.putImageData(
+                        imgPart,
+                        this.visCanvas.width - e.data.width >> 1,
+                        (this.visCanvas.height - e.data.height >> 1) + e.data.partStartY,
+                        0,
+                        0,
+                        imgPart.width,
+                        e.data.partHeight
                     );
+        
+                    this.visContext.beginPath();
+                    this.visContext.lineWidth = 1;
+                    this.visContext.strokeStyle = 'rgba(0, 255, 0, 1)';
+                    this.visContext.strokeRect(
+                        1,
+                        (this.visCanvas.height - e.data.height >> 1) + e.data.partStartY,
+                        this.visCanvas.width - 2,
+                        e.data.partHeight
+                    );
+
+                    if (this.visWorker.working || this.mapWorker.working) {
+                        $(this.visCanvas).parent().toggleClass('loading', true);
+                        $(this.mapCanvas).parent().toggleClass('loading', true);
+                    }
+                }
+
+                if (e.data.final) {
+                    let img = e.data.img;
+
+                    this.visImg = img;
+            
+                    this.visContext.putImageData(img, this.visCanvas.width - img.width >> 1, this.visCanvas.height - img.height >> 1);
+
+                    this.visImgOffsetX = 0;
+                    this.visImgOffsetY = 0;
+
+                    this.drawHoverArea();
+                    
+                    if (!this.visWorker.working && !this.mapWorker.working) {
+                        $(this.visCanvas).parent().removeClass('loading');
+                        $(this.mapCanvas).parent().removeClass('loading');
+                    }
+                }
+            }, this);
+
+            this.mapWorker.work(this.mapMagnif, this.mapCenterX, this.mapCenterY, this.previewCanvas.width, this.previewCanvas.height, (e) => {
+                if (e.data.final === false && typeof e.data.partStartY !== 'undefined' && typeof e.data.partHeight !== 'undefined') {
+                    // console.log('Received partial render result for Minimap & Preview', e.data);
+
+                    let imgPart = e.data.img;
+
+                    this.previewContext.putImageData(
+                        imgPart,
+                        0,
+                        e.data.partStartY,
+                        0,
+                        0,
+                        imgPart.width,
+                        e.data.partHeight
+                    );
+
+                    createImageBitmap(imgPart).then(((imgBitmap) => {
+                        this.mapContext.drawImage(
+                            imgBitmap,
+                            0, 0, imgBitmap.width, e.data.partHeight,
+                            0,
+                            e.data.partStartY / this.previewCanvas.height * this.mapCanvas.height,
+                            this.mapCanvas.width,
+                            e.data.partHeight / this.previewCanvas.height * this.mapCanvas.height
+                        );
+
+                        this.drawHoverArea();
+                    }).bind(this));
+
+                    this.previewContext.beginPath();
+                    this.previewContext.lineWidth = 1;
+                    this.previewContext.strokeStyle = 'rgba(0, 255, 0, 1)';
+                    this.previewContext.strokeRect(
+                        1,
+                        e.data.partStartY,
+                        this.previewCanvas.width - 2,
+                        e.data.partHeight
+                    );
+        
+                    this.mapContext.beginPath();
+                    this.mapContext.lineWidth = 1;
+                    this.mapContext.strokeStyle = 'rgba(0, 255, 0, 1)';
+                    this.mapContext.strokeRect(
+                        1,
+                        e.data.partStartY / this.previewCanvas.height * this.mapCanvas.height,
+                        this.mapCanvas.width - 2,
+                        e.data.partHeight / this.previewCanvas.height * this.mapCanvas.height
+                    );
+
+                    this.drawHoverArea();
+
+                    if (this.visWorker.working || this.mapWorker.working) {
+                        $(this.visCanvas).parent().toggleClass('loading', true);
+                        $(this.mapCanvas).parent().toggleClass('loading', true);
+                    }
+                }
+
+                if (e.data.final) {
+                    let img = e.data.img;
+                    
+                    this.previewImg = img;                
+
+                    createImageBitmap(img).then(((imgBitmap) => {
+                        this.mapContext.drawImage(imgBitmap, 0, 0, this.mapCanvas.width, this.mapCanvas.height);
+                        this.mapImg = this.mapContext.getImageData(0, 0, this.mapCanvas.width, this.mapCanvas.height);
+
+                        this.drawHoverArea();
+                    }).bind(this));
+
+                    this.drawHoverArea();
+
+                    if (!this.visWorker.working && !this.mapWorker.working) {
+                        $(this.visCanvas).parent().removeClass('loading');
+                        $(this.mapCanvas).parent().removeClass('loading');
+                    }
+                }
+            }, this);
+        }
+    }
+
+    class MinimapManager {
+        constructor() {
+            this.visMagnif = 10000000;
+            this.mapMagnif = 300;
+
+            this.visCanvas = null;
+            this.previewCanvas = null;
+            
+            this.mapContainer = null;
+            this.visualContainer = null;
+
+            this.pairs = [];
+            this.pairMain = null;
+
+            this.minStrokeW = 400;
+
+            this.dragInit = false;
+            this.dragStartX = null;
+            this.dragStartY = null;
+            this.dragCurrentMouseX = null;
+            this.dragCurrentMouseY = null;
+            this.dragGlobalID = null;
+
+            this.wheelInit = false;
+            this.wheelDirection = null;
+            this.wheelStartMagnif = null;
+            this.wheelCurrentRatio = null;
+            this.wheelTimeoutGlobalID = null;
+            this.wheelGlobalID = null;
+        }
+
+        initMaps(visCanvas, previewCanvas, mapContainer, visualContainer, hoverX = 0, hoverY = 0) {
+            this.visCanvas = visCanvas;
+            this.previewCanvas = previewCanvas;
+
+            this.mapContainer = mapContainer;
+            this.visualContainer = visualContainer;
+
+            let currentMapMagnif = Math.round(this.mapMagnif);
+            let strokeW = this.visCanvas.width * currentMapMagnif / this.visMagnif;
+
+            let lastMapCanvas = document.createElement('canvas');
+
+            lastMapCanvas.width = mapWidth;
+            lastMapCanvas.height = mapHeight;
+        
+            let li = $('<li></li>');
+            let span = $('<span></span>');
+            
+            span.html(Math.round(currentMapMagnif));
+            $(this.mapContainer).append(li.toggleClass('loading', true).append(span).append(lastMapCanvas));
+
+            while (strokeW < this.minStrokeW) {
+                let nextMapCanvas = document.createElement('canvas');
+
+                nextMapCanvas.width = mapWidth;
+                nextMapCanvas.height = mapHeight;
+            
+                let li = $('<li></li>');
+                let span = $('<span></span>');
+                
+                span.html(Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW));
+                $(this.mapContainer).append(li.toggleClass('loading', true).append(span).append(nextMapCanvas));
+
+                let currentPair = new MapVisualPair;
+                
+                currentPair.visMagnif = Math.round(currentMapMagnif * nextMapCanvas.width / this.minStrokeW);
+                currentPair.visCenterX = hoverX;
+                currentPair.visCenterY = hoverY;
+            
+                currentPair.mapMagnif = Math.round(currentMapMagnif);
+                currentPair.mapCenterX = this.pairs.length ? hoverX : 0;
+                currentPair.mapCenterY = this.pairs.length ? hoverY : 0;
+            
+                currentPair.init(nextMapCanvas, lastMapCanvas, this.previewCanvas);
+
+                this.pairs.push(currentPair);
+
+                lastMapCanvas = nextMapCanvas;
+
+                currentMapMagnif = Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW);
+                strokeW = this.visCanvas.width * currentMapMagnif / this.visMagnif;
+
+            }
+            
+            this.pairMain = new MapVisualPair;
+
+            this.pairMain.visMagnif = this.visMagnif;
+            this.pairMain.visCenterX = hoverX;
+            this.pairMain.visCenterY = hoverY;
+
+            this.pairMain.mapMagnif = currentMapMagnif;
+            this.pairMain.mapCenterX = hoverX;
+            this.pairMain.mapCenterY = hoverY;
+            
+            this.pairMain.init(this.visCanvas, lastMapCanvas, this.previewCanvas);
+
+            this.pairs.push(this.pairMain);
+            
+            for (let i = 0; i < this.pairs.length; i++) {
+                console.log(i, this.pairs[i]);
+                this.pairs[i].moveTo();                
+            }
+        }
+
+        initPairMainDrag() {
+            if (this.dragInit || !this.visualContainer || !this.pairMain) {
+                return;
+            }
+
+            this.dragInit = true;
+
+            $(this.visualContainer).mousedown(this.pairMainMouseDown.bind(this));        
+            $(this.visualContainer).mousemove(this.pairMainMouseMove.bind(this));
+            $(this.visualContainer).mouseup(this.pairMainMouseUp.bind(this));
+            $(document).mouseup(this.pairMainMouseUp.bind(this));
+        }
+
+        pairMainMouseDown(e) {
+            if (e.which != 1) {
+                return;
+            }
+    
+            if (!this.dragGlobalID && this.pairMain.visImg) {
+                this.dragStartX = this.dragCurrentMouseX = e.offsetX;
+                this.dragStartY = this.dragCurrentMouseY = e.offsetY;
+    
+                this.dragGlobalID = window.requestAnimationFrame(this.pairMainStepDrag.bind(this));
+                console.log('dragging start');    
+            }
+        }
+
+        pairMainMouseMove(e) {
+            if (this.dragGlobalID) {
+                this.dragCurrentMouseX = e.offsetX;
+                this.dragCurrentMouseY = e.offsetY;
+            }
+        }
+
+        pairMainMouseUp(e) {
+            if (e.which != 1) {
+                return;
+            }
+
+            if (!this.dragGlobalID) {
+                return;
+            }
+    
+            window.cancelAnimationFrame(this.dragGlobalID);
+            this.dragGlobalID = null;
+    
+            let offsetX = this.dragCurrentMouseX - this.dragStartX;
+            let offsetY = this.dragCurrentMouseY - this.dragStartY;
+    
+            this.pairMain.visContext.fillRect(0, 0, this.pairMain.visCanvas.width, this.pairMain.visCanvas.height);
+            this.pairMain.visContext.putImageData(
+                this.pairMain.visImg,
+                offsetX + this.pairMain.visImgOffsetX + (this.pairMain.visCanvas.width - this.pairMain.visImg.width >> 1),
+                offsetY + this.pairMain.visImgOffsetY + (this.pairMain.visCanvas.height - this.pairMain.visImg.height >> 1)
+            );
+    
+            this.pairMain.mapContext.fillRect(0, 0, this.pairMain.mapCanvas.width, this.pairMain.mapCanvas.height);
+            this.pairMain.mapContext.putImageData(
+                this.pairMain.mapImg,
+                this.pairMain.mapCanvas.width - this.pairMain.mapImg.width >> 1,
+                this.pairMain.mapCanvas.height - this.pairMain.mapImg.height >> 1
+            );
+    
+            this.pairMain.drawHoverArea(- offsetX / this.pairMain.visMagnif, offsetY / this.pairMain.visMagnif);
+    
+            this.pairMain.visImgOffsetX += offsetX;
+            this.pairMain.visImgOffsetY += offsetY;
+    
+            console.log('dragging stop at', this.pairMain.visCenterX - offsetX / this.pairMain.visMagnif, this.pairMain.visCenterY + offsetY / this.pairMain.visMagnif);
+    
+            for (let i = this.pairs.length - 1; i >= 0; i--) {
+                const currentPair = this.pairs[i];
+
+                let destRealX = this.pairMain.visCenterX - offsetX / this.pairMain.visMagnif;
+                let destRealY = this.pairMain.visCenterY + offsetY / this.pairMain.visMagnif;
+
+                let diffRealX = Math.abs(currentPair.mapCenterX - destRealX);
+                let diffRealY = Math.abs(currentPair.mapCenterY - destRealY);
+
+                let offsetXOnCurrentPairMinimap = Math.abs(diffRealX * currentPair.mapMagnif / currentPair.previewCanvas.width * currentPair.mapCanvas.width);
+                let offsetYOnCurrentPairMinimap = Math.abs(diffRealY * currentPair.mapMagnif / currentPair.previewCanvas.height * currentPair.mapCanvas.height);
+
+                console.log(
+                    'checking update requirements of minimap with magnif',
+                    currentPair.mapMagnif,
+                    offsetXOnCurrentPairMinimap,
+                    offsetYOnCurrentPairMinimap,
+                    'EOL'
+                );
+
+                if (offsetXOnCurrentPairMinimap > 1 || offsetYOnCurrentPairMinimap > 1) {
+                    currentPair.mapCenterX = destRealX;
+                    currentPair.mapCenterY = destRealY;
+
+                    $(currentPair.mapCanvas).parent().toggleClass('loading', true);
+                    
+                    currentPair.moveTo(destRealX, destRealY);
+                } else {
+                    console.log('Breaking at pair', i, 'updating', this.pairs.length - i - 1, 'maps');
 
                     break;
                 }
             }
+
+            console.log('All current pairs, mouse dragging stopped', this.pairs);
+            
         }
 
-        dragGlobalID = window.requestAnimationFrame(step);
-    }
-
-    $('#visual-container').mousemove(function (e) {
-        if (dragGlobalID) {
-            dragCurrentMouseY = e.offsetY;
-            dragCurrentMouseX = e.offsetX;
-        }
-    });
-
-    $('#visual-container').mouseup(function (e) {
-        if (e.which != 1) {
-            return;
-        }
+        pairMainStepDrag(timestamp) {
+            if (this.dragCurrentMouseX - this.dragStartX !== 0 || this.dragCurrentMouseY - this.dragStartY !== 0) {
         
-        dragCurrentX += e.offsetX - dragStartX;
-        dragCurrentY += e.offsetY - dragStartY;
+                let offsetX = this.dragCurrentMouseX - this.dragStartX;
+                let offsetY = this.dragCurrentMouseY - this.dragStartY;
         
-        ctx.clearRect(0, 0, screenWidth, screenHeight);
-        ctx.putImageData(cvsImg, dragCurrentX, dragCurrentY);
-        // ctx.putImageData(
-        //     cvsImg, dragCurrentX, dragCurrentY,
-        //     dragCurrentX > 0 ? 0 : - dragCurrentX,
-        //     dragCurrentY > 0 ? 0 : - dragCurrentY,
-        //     dragCurrentX > 0 ? screenWidth - dragCurrentX : screenWidth + dragCurrentX,
-        //     dragCurrentY > 0 ? screenHeight - dragCurrentY : screenHeight + dragCurrentY
-        // );
-
-        window.cancelAnimationFrame(dragGlobalID);
-        dragGlobalID = null;
-
-        // console.log('dragging stop', hoverX, hoverY);
-
-        // hoverX += - dragCurrentX / actualMagif;
-        // hoverY += dragCurrentY / actualMagif;
-
-        // dragCurrentX = 0;
-        // dragCurrentY = 0;
-
-        // window.requestAnimationFrame(function(timestamp) {
-        //     console.log("requestAnimationFrame", timestamp);
-
-        //     hoverX += - dragCurrentX / actualMagif;
-        //     hoverY += dragCurrentY / actualMagif;
+                this.pairMain.visContext.fillRect(0, 0, this.pairMain.visCanvas.width, this.pairMain.visCanvas.height);
+                this.pairMain.visContext.putImageData(
+                    this.pairMain.visImg,
+                    offsetX + this.pairMain.visImgOffsetX + (this.pairMain.visCanvas.width - this.pairMain.visImg.width >> 1),
+                    offsetY + this.pairMain.visImgOffsetY + (this.pairMain.visCanvas.height - this.pairMain.visImg.height >> 1)
+                );
     
-        //     renderMandel(ctx, actualMagif, hoverX, hoverY);
-        //     cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-        //     renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+                this.pairMain.mapContext.fillRect(0, 0, this.pairMain.mapCanvas.width, this.pairMain.mapCanvas.height);
+                this.pairMain.mapContext.putImageData(
+                    this.pairMain.mapImg,
+                    this.pairMain.mapCanvas.width - this.pairMain.mapImg.width >> 1,
+                    this.pairMain.mapCanvas.height - this.pairMain.mapImg.height >> 1
+                );
     
-        //     dragCurrentX = 0;
-        //     dragCurrentY = 0;
-        // });
+                this.pairMain.drawHoverArea(- offsetX / this.pairMain.visMagnif, offsetY / this.pairMain.visMagnif);
+            }
+    
+            this.dragGlobalID = window.requestAnimationFrame(this.pairMainStepDrag.bind(this));
+        }
 
-    });
+        initPairMainWheel() {
+            if (this.wheelInit || !this.pairMain) {
+                return;
+            }
 
-    var cvsMinimap = document.createElement('canvas');
-    $('#visual-container').append(cvsMinimap);
-    $(cvsMinimap).hide();
+            this.wheelInit = true;
 
-    cvsMinimap.width = screenWidth;
-    cvsMinimap.height = screenHeight;
+            $(document).bind('mousewheel', this.pairMainWheel.bind(this));
+        }
 
-    var ctxMinimap = cvsMinimap.getContext('2d');
+        pairMainWheel(e) {
+            if (this.wheelTimeoutGlobalID === null) {
+                this.wheelCurrentRatio = 1;
+                this.wheelStartMagnif = this.pairMain.visMagnif;
+    
+                this.wheelGlobalID = window.requestAnimationFrame(this.pairMainStepWheel.bind(this));
+                this.wheelTimeoutGlobalID = setTimeout(this.pairMainTimeoutWheel.bind(this), 500);
+            } else {
+                clearTimeout(this.wheelTimeoutGlobalID);
+                this.wheelTimeoutGlobalID = setTimeout(this.pairMainTimeoutWheel.bind(this), 500);
+            }
+    
+            // Up, decrease magnification
+            if(e.originalEvent.wheelDelta > 0) {
+                this.wheelDirection = -1;
+            }
+            
+            // Down, increase magnification
+            if(e.originalEvent.wheelDelta < 0) {
+                this.wheelDirection = 1;
+            }
+        }
 
-    var maps = [];
+        pairMainTimeoutWheel() {
+            console.log('Wheeling stop at magnif', this.pairMain.visMagnif);
 
-    var cache = {}
+            window.cancelAnimationFrame(this.wheelGlobalID);
+            this.wheelGlobalID = null;
+    
+            clearTimeout(this.wheelTimeoutGlobalID);
+            this.wheelTimeoutGlobalID = null;
 
-    function checkIfBelongsToMandelbrotSet(x, y, maxIterations = 1000) {
-        var realComponentOfResult = x;
-        var imaginaryComponentOfResult = y;
+            this.pairMain.mapContext.fillRect(0, 0, this.pairMain.mapCanvas.width, this.pairMain.mapCanvas.height);
 
-        // if ((typeof cache[y]) !== 'undefined' && (typeof cache[y][x]) !== 'undefined') {
-        //     return cache[y][x];
-        // }
+            if (this.wheelDirection > 0) {
+                console.log('Adding more maps now');
 
-        for (var i = 0; i < maxIterations; i++) {
-            // Calculate the real and imaginary components of the result
-            // separately
-            var tempRealComponent = realComponentOfResult * realComponentOfResult -
-                imaginaryComponentOfResult * imaginaryComponentOfResult +
-                x;
+                let currentMapMagnif = Math.round(this.pairMain.mapMagnif);
+                let strokeW = this.visCanvas.width * currentMapMagnif / this.pairMain.visMagnif;
+    
+                let lastMapCanvas = this.pairMain.mapCanvas;
 
-            var tempImaginaryComponent = 2 * realComponentOfResult * imaginaryComponentOfResult +
-                y;
+                let startingMapIndex = this.pairs.length - 1;
 
-            realComponentOfResult = tempRealComponent;
-            imaginaryComponentOfResult = tempImaginaryComponent;
+                this.pairs.pop();
+    
+                console.log(strokeW);
 
-            if (realComponentOfResult * realComponentOfResult + imaginaryComponentOfResult * imaginaryComponentOfResult > 2) {
+                while (strokeW < this.minStrokeW) {
+                    console.log(strokeW, currentMapMagnif);
 
-                // console.log(typeof cache[y], cache);
-
-                // if ((typeof cache[y]) === 'undefined') {
-                //     cache[y] = {};
-                // }
-
-                // return cache[y][x] = i / maxIterations * 100;
+                    let nextMapCanvas = document.createElement('canvas');
+    
+                    nextMapCanvas.width = mapWidth;
+                    nextMapCanvas.height = mapHeight;
                 
-                return i / maxIterations * 100;
-            }
-        }
-
-        // console.log(typeof cache[y], cache);
-
-        if ((typeof cache[y]) === 'undefined') {
-            cache[y] = {};
-        }
-
-        return cache[y][x] = 0;
-    }
-
-    function renderMandel(ctx, magnif = 1000, centerX = 0, centerY = 0, startX = 0, startY = 0, width = screenWidth, height = screenHeight) {
-
-        var realWidthHalf = width / magnif * 0.5;
-        var realHeightHalf = height / magnif * 0.5;
-        var maxIterations = Math.pow(50 * (Math.log10(magnif)), 1.25);
-
-        // console.log(maxIterations);
-
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
-                var belongsToSet =
-                    checkIfBelongsToMandelbrotSet(
-                        centerX - realWidthHalf + x / magnif,
-                        centerY + realHeightHalf - y / magnif,
-                        maxIterations
-                    );
-
-                // var rgb = belongsToSet / 100 * 0xFFFFFF >> 0;
-
-                // var r = rgb >> 16 & 0XFF;
-                // var g = rgb >> 8 & 0XFF;
-                // var b = rgb >> 0 & 0XFF;
-
-                ctx.fillStyle = 'hsl(0, 100%, ' + belongsToSet + '%)';
-                ctx.fillRect(x + startX, y + startY, 1, 1);
-            }
-        }
-    }
-
-    function renderMinimap(
-        index = 0,
-        magnif = 30,
-        centerX = 0,
-        centerY = 0,
-        width = 160,
-        height = 90,
-        hoverMagif = 1000,
-        hoverCenterX = 0,
-        hoverCenterY = 0,
-        hoverWidth = 1,
-        hoverHeight = 1
-    ) {
-        var smallestRegionRatio = 0.1;
-        var ctx = null;
-        var span = null;
-        var li = null;
-
-        if (maps.length <= index || typeof maps[index].ctx === 'undefined') {
-
-            var cvsMinimapSmall = document.createElement('canvas');
-
-            cvsMinimapSmall.width = width;
-            cvsMinimapSmall.height = height;
-
-            ctx = cvsMinimapSmall.getContext('2d');
-
-            li = $('<li></li>');
-            span = $('<span></span>');
-            span.html(magnif);
-            $('#maps-container').append(li.append(span).append(cvsMinimapSmall));
-
-            li.data('mapIndex', index);
-
-            li.mouseover(function (e) {
-                li.prev().toggleClass('nearby', true);
-                li.next().toggleClass('nearby', true);
-
-                ctxMinimap.putImageData(maps[li.data('mapIndex')].imgLarge, 0, 0);
-                $(cvsMinimap).stop().fadeTo(400, Math.random() * 0.2 + 0.8);
-            });
-
-            li.mouseout(function (e) {
-                li.prev().removeClass('nearby');
-                li.next().removeClass('nearby');
-
-                ctxMinimap.putImageData(maps[li.data('mapIndex')].imgLarge, 0, 0);
-                $(cvsMinimap).stop().fadeTo(400, 0);
-            });
-
-            $(cvsMinimapSmall).mousedown(function (e) {
-                // console.log('down', e);
-
-                if (e.which != 1) {
-                    return;
+                    let li = $('<li></li>');
+                    let span = $('<span></span>');
+                    
+                    span.html(Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW));
+                    $(this.mapContainer).append(li.toggleClass('loading', true).append(span).append(nextMapCanvas));
+    
+                    let currentPair = new MapVisualPair;
+                    
+                    currentPair.visMagnif = Math.round(currentMapMagnif * nextMapCanvas.width / this.minStrokeW);
+                    currentPair.visCenterX = hoverX;
+                    currentPair.visCenterY = hoverY;
+                
+                    currentPair.mapMagnif = Math.round(currentMapMagnif);
+                    currentPair.mapCenterX = this.pairs.length ? hoverX : 0;
+                    currentPair.mapCenterY = this.pairs.length ? hoverY : 0;
+                
+                    currentPair.init(nextMapCanvas, lastMapCanvas, this.previewCanvas);
+    
+                    this.pairs.push(currentPair);
+    
+                    lastMapCanvas = nextMapCanvas;
+    
+                    currentMapMagnif = Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW);
+                    strokeW = this.visCanvas.width * currentMapMagnif / this.visMagnif;    
                 }
 
-                var offsetX = e.offsetX;
-                var offsetY = e.offsetY;
+                this.pairs.push(this.pairMain);
 
-                var offsetOfCenterX = offsetX - e.target.width * .5;
-                var offsetOfCenterY = offsetY - e.target.height * .5;
+                this.pairMain.mapMagnif = currentMapMagnif;
+    
+                this.pairMain.init(this.visCanvas, lastMapCanvas, this.previewCanvas);
+                
+                for (let i = startingMapIndex; i < this.pairs.length; i++) {
+                    console.log(i, this.pairs[i]);
+                    this.pairs[i].moveTo();
+                }
+            }
 
-                var mapIndex = $(e.target).parent().data('mapIndex');
+            if (this.wheelDirection < 0) {
+                console.log('Removing some maps now');
 
-                if (typeof mapIndex !== 'undefined' && maps.length > mapIndex) {
+                let currentMapMagnif = Math.round(this.pairMain.mapMagnif);
+                let strokeW = this.visCanvas.width * currentMapMagnif / this.pairMain.visMagnif;
+    
+                // this.pairs.push(this.pairMain);
 
-                    hoverX = offsetOfCenterX / maps[mapIndex].magnif + maps[mapIndex].centerX;
-                    hoverY = - offsetOfCenterY / maps[mapIndex].magnif + maps[mapIndex].centerY;
+                // this.pairMain.mapMagnif = currentMapMagnif;
+    
+                // this.pairMain.init(this.visCanvas, lastMapCanvas, this.previewCanvas);
+                
+                for (let i = this.pairs.length - 1; i >= 0; i--) {
+                   
 
-                    if (maps.length > mapIndex + 1) {
-                        var magnif = screenWidth * (maps[mapIndex + 1].magnif * .2) / width;
-                        
-                        actualMagif = magnif;
-                        
-                        renderMandel(cvs.getContext('2d'), actualMagif, hoverX, hoverY);
-                        cvsImg = cvs.getContext('2d').getImageData(0, 0, screenWidth, screenHeight);
-                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
-                    } else {
-                        renderMandel(cvs.getContext('2d'), actualMagif, hoverX, hoverY);
-                        cvsImg = cvs.getContext('2d').getImageData(0, 0, screenWidth, screenHeight);
-                        renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+                    currentMapMagnif = Math.round(this.pairs[i].mapMagnif);
+                    strokeW = this.visCanvas.width * currentMapMagnif / this.pairs[i].visMagnif;
+
+                    if (strokeW < screenWidth) {
+                        console.log('Stopped with index', i, 'removing from', i, 'to', this.pairs.length - 1);
+
+                        break;
                     }
-
-                    console.log(
-                        'magnif', magnif,
-                        'mapIndex', mapIndex,
-                        'offsetOfCenterX', offsetOfCenterX,
-                        'offsetOfCenterY', offsetOfCenterY,
-                        'newX', hoverX,
-                        'newY', hoverY,
-                        'screenWidth / magnif', screenWidth / magnif,
-                        'screenHeight / magnif', screenHeight / magnif
-                    );
-                }
-            });
-
-            maps[index] = {
-                cvs: cvsMinimapSmall,
-                ctx: ctx,
-                magnif: magnif,
-                centerX: centerX,
-                centerY: centerY,
-            };
-        } else {
-            ctx = maps[index].ctx;
-            $(maps[index].cvs).parent().show();
-            li = $(maps[index].cvs).parent();
-            span = li.find('span').first();
-
-            maps[index].magnif = magnif;
-            maps[index].centerX = centerX;
-            maps[index].centerY = centerY;
-        }
-
-        console.log(
-            'Rendering minimap', index,
-            'ctx', ctx,
-            'magnif', magnif,
-            'centerX', centerX,
-            'centerY', centerY,
-            'startX', 0,
-            'startY', 0,
-            'width', width,
-            'height', height
-        );
-
-        renderMandel(ctx, magnif, centerX, centerY, 0, 0, width, height);
-        maps[index].img = ctx.getImageData(0, 0, width, height);
-
-        renderMandel(ctxMinimap, screenWidth * magnif / width, centerX, centerY, 0, 0, screenWidth, screenHeight);
-       
-        // Draw Minimap Border
-
-        // ctx.beginPath();
-        // ctx.lineWidth = 1;
-        // ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-        // ctx.strokeRect(startX, startY, width, height);
-
-        // Focus region
-
-        var hoverStartX;
-        var hoverStartY;
-
-        var strokeX;
-        var strokeY;
-        var strokeW;
-        var strokeH;
-
-        var nextMagnif = 0,
-            nextMinimapNeeded = false;
-
-        // Draw hover rect on big canvas of minimap
-
-        // console.log('hoverWidth * magnif', hoverWidth * magnif, 'width * smallestRegionRatio', width * smallestRegionRatio, 'new needed, next one will be', magnif / smallestRegionRatio);
-
-        if (hoverWidth * magnif <= width * smallestRegionRatio || hoverHeight * magnif <= height * smallestRegionRatio) {
-            nextMinimapNeeded = true;
-            nextMagnif = magnif / smallestRegionRatio;
-        } else {
-            nextMinimapNeeded = false;
-        }
-
-        var magnifBigCanvas = screenWidth * magnif / width;
-
-        if (nextMinimapNeeded) {
-            var nextMagnifBigCanvas = magnifBigCanvas / smallestRegionRatio;
-
-            hoverStartX = hoverCenterX - (screenWidth / nextMagnifBigCanvas) * .5 - centerX
-            hoverStartY = hoverCenterY + (screenHeight / nextMagnifBigCanvas) * .5 - centerY
-
-            strokeX = screenWidth * .5 + hoverStartX * (magnifBigCanvas);
-            strokeY = screenHeight * .5 - hoverStartY * (magnifBigCanvas);
-            strokeW = screenWidth * smallestRegionRatio;
-            strokeH = screenHeight * smallestRegionRatio;
-        } else {
-            hoverStartX = hoverCenterX - hoverWidth * .5 - centerX
-            hoverStartY = hoverCenterY + hoverHeight * .5 - centerY
-
-            strokeX = screenWidth * .5 + hoverStartX * magnifBigCanvas;
-            strokeY = screenHeight * .5 - hoverStartY * magnifBigCanvas;
-            strokeW = hoverWidth * magnifBigCanvas;
-            strokeH = hoverHeight * magnifBigCanvas;
-        }
-
-        if (strokeW <= 1) {
-            strokeW = 1
-        }
-
-        if (strokeH <= 1) {
-            strokeH = 1
-        }
-
-        ctxMinimap.beginPath();
-        ctxMinimap.lineWidth = 1;
-        ctxMinimap.strokeStyle = 'rgba(255, 0, 255, 1)';
-        ctxMinimap.strokeRect(
-            strokeX,
-            strokeY,
-            strokeW,
-            strokeH
-        );
-
-        var imageDataMinimapLarge = ctxMinimap.getImageData(0, 0, screenWidth, screenHeight);
-        // ctxMinimap.putImageData(imageDataMinimapLarge, 0, 0);
-        maps[index].imgLarge = imageDataMinimapLarge;
-
-        // Draw hover rect on small canvas of minimap
-
-        if (nextMinimapNeeded) {
-            hoverStartX = hoverCenterX - (width / nextMagnif) * .5 - centerX
-            hoverStartY = hoverCenterY + (height / nextMagnif) * .5 - centerY
-
-            strokeX = width * .5 + hoverStartX * magnif;
-            strokeY = height * .5 - hoverStartY * magnif;
-            strokeW = width * smallestRegionRatio;
-            strokeH = height * smallestRegionRatio;
-        } else {
-            hoverStartX = hoverCenterX - hoverWidth * .5 - centerX
-            hoverStartY = hoverCenterY + hoverHeight * .5 - centerY
-
-            strokeX = width * .5 + hoverStartX * magnif;
-            strokeY = height * .5 - hoverStartY * magnif;
-            strokeW = hoverWidth * magnif;
-            strokeH = hoverHeight * magnif;
-        }
-
-        if (strokeW <= 1) {
-            strokeW = 1
-        }
-
-        if (strokeH <= 1) {
-            strokeH = 1
-        }
-
-        ctx.beginPath();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(255, 0, 255, 1)';
-        ctx.strokeRect(
-            strokeX,
-            strokeY,
-            strokeW,
-            strokeH
-        );
-
-        if (nextMinimapNeeded) {
-            span.html(nextMagnif);
-        }
-
-        if (nextMinimapNeeded && nextMagnif) {
-
-            console.log('Rendering next map', index + 1, 'current magnif', magnif, 'next magnif', nextMagnif);
-
-            renderMinimap(index + 1, nextMagnif, hoverCenterX, hoverCenterY, 160, 90, hoverMagif, hoverX, hoverY, screenWidth / hoverMagif, screenHeight / hoverMagif);
-
-            ctx.beginPath();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-            ctx.moveTo(strokeX, strokeY + strokeH);
-            ctx.lineTo(0, height);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-            ctx.moveTo(strokeX + strokeW, strokeY + strokeH);
-            ctx.lineTo(width, height);
-            ctx.stroke();
-
-        } else {            
-            for (var i = index + 1; i < maps.length; i++) {
-                console.log('Hiding', i);
-                if (typeof maps[i].cvs !== 'undefined') {
-                    $(maps[i].cvs).parent().hide();
-                    $(maps[i].cvs).parent().removeClass('shadow');
                 }
             }
 
-            // Draw highlight on the last minimap
-
-            ctx.beginPath();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-            ctx.strokeRect(0, 0, width, height);
-
-            $(maps[index].cvs).parent().toggleClass('shadow', true);
-
-            cvsLargeCache.width = screenWidth * 3;
-            cvsLargeCache.height = screenHeight * 3;
-
-            renderMandel(
-                cvsLargeCache.getContext('2d'), actualMagif,
-                hoverX,
-                hoverY,
-                0,
-                0,
-                cvsLargeCache.width,
-                cvsLargeCache.height
-            );
-
-            cvsImg = cvsLargeCache.getContext('2d').getImageData(
-                0,
-                0,
-                cvsLargeCache.width,
-                cvsLargeCache.height
-            );
-
-            dragCurrentX = (screenWidth - cvsLargeCache.width) * .5;
-            dragCurrentY = (screenHeight - cvsLargeCache.height) * .5;
+            console.log('All current pairs, mouse wheeling stopped', this.pairs);
+    
+            this.wheelDirection = null;
+            this.wheelStartMagnif = null;
+            this.wheelCurrentRatio = null;    
         }
 
+        pairMainStepWheel() {
+            this.pairMain.visContext.fillRect(0, 0, this.pairMain.visCanvas.width, this.pairMain.visCanvas.height);
+
+            if (this.wheelDirection > 0) {
+                this.wheelCurrentRatio *= 1.02;
+            }
+    
+            if (this.wheelDirection < 0) {
+                this.wheelCurrentRatio /= 1.02;
+            }
+    
+            
+            this.pairMain.visMagnif = this.visMagnif = Math.round(this.wheelStartMagnif * this.wheelCurrentRatio);
+            
+            // console.log('Wheeling current magnif', this.pairMain.visMagnif);
+
+            createImageBitmap(this.pairMain.visImg).then(((imgBitmap) => {
+                this.pairMain.visContext.drawImage(
+                    imgBitmap,
+                    this.pairMain.visCanvas.width - this.wheelCurrentRatio * this.pairMain.visImg.width >> 1,
+                    this.pairMain.visCanvas.height - this.wheelCurrentRatio * this.pairMain.visImg.height >> 1,
+                    this.pairMain.visImg.width * this.wheelCurrentRatio,
+                    this.pairMain.visImg.height * this.wheelCurrentRatio
+                );
+    
+                this.pairMain.drawHoverArea();
+            }).bind(this));
+    
+            this.wheelGlobalID = window.requestAnimationFrame(this.pairMainStepWheel.bind(this));
+        }
     }
 
-    $(document).mouseup(function (e) {
-        var targetIndex = $(e.target).parent().data('mapIndex');
-        if (typeof targetIndex !== 'undefined') {
-            // console.log('up', targetIndex);
-        }
-    });
+    var screenWidth = 1440;
+    var screenHeight = 821;
 
-    var actualMagif = 1000000000
-    var mapMagnif = 30
+    var mapWidth = 160;
+    var mapHeight = 90;
+
+    var visMagnif = 1000000;
+    var mapMagnif = 300;
     var hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
     var hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
 
-    console.log(hoverX, hoverY);
+    var mainCanvas = document.createElement('canvas');
 
-    renderMandel(ctx, actualMagif, hoverX, hoverY);
-    cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-    renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+    $('#visual-container').append(mainCanvas);
+
+    mainCanvas.width = screenWidth;
+    mainCanvas.height = screenHeight;
+    
+    mainCanvas.getContext('2d').fillRect(0, 0, screenWidth, screenHeight);
+
+    // $(mainCanvas).hide();
+
+    var previewCanvas = document.createElement('canvas');
+
+    $('#visual-container').append(previewCanvas);
+
+    previewCanvas.width = screenWidth;
+    previewCanvas.height = screenHeight;
+
+    previewCanvas.getContext('2d').fillRect(0, 0, screenWidth, screenHeight);
+
+    $(previewCanvas).hide();
+
+    var minimapManager = new MinimapManager;
+    
+    minimapManager.visMagnif = visMagnif;
+    minimapManager.mapMagnif = mapMagnif;
+    
+    minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
+    minimapManager.initPairMainDrag();
+    minimapManager.initPairMainWheel();
 
     $(document).keydown(function(e) {
         // Numpad +
-        if (e.keyCode == 107 || e.keyCode == 187) {
-            actualMagif *= 2
+        if (e.keyCode === 107 || e.keyCode === 187) {
+            actualMagif *= 2;
 
-            renderMandel(ctx, actualMagif, hoverX, hoverY);
-            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
         }
 
         // Numpad -
-        if (e.keyCode == 109 || e.keyCode == 189) {
-            actualMagif *= 0.5
+        if (e.keyCode === 109 || e.keyCode === 189) {
+            actualMagif *= 0.5;
 
-            renderMandel(ctx, actualMagif, hoverX, hoverY);
-            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
         }
 
         // ArrowUp
-        if (e.keyCode == 38) {
-            hoverY += 100 / actualMagif
+        if (e.keyCode === 38 || e.keyCode === 87) {
+            hoverY += 100 / actualMagif;
 
-            renderMandel(ctx, actualMagif, hoverX, hoverY);
-            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
         }
 
         // ArrowDown
-        if (e.keyCode == 40) {
-            hoverY -= 100 / actualMagif
+        if (e.keyCode === 40 || e.keyCode === 83) {
+            hoverY -= 100 / actualMagif;
 
-            renderMandel(ctx, actualMagif, hoverX, hoverY);
-            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
         }
 
         // ArrowLeft
-        if (e.keyCode == 37) {
-            hoverX -= 100 / actualMagif
+        if (e.keyCode === 37 || e.keyCode === 65) {
+            hoverX -= 100 / actualMagif;
 
-            renderMandel(ctx, actualMagif, hoverX, hoverY);
-            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
         }
 
         // ArrowRight
-        if (e.keyCode == 39) {
-            hoverX += 100 / actualMagif
+        if (e.keyCode === 39 || e.keyCode === 68) {
+            hoverX += 100 / actualMagif;
 
-            renderMandel(ctx, actualMagif, hoverX, hoverY);
-            cvsImg = ctx.getImageData(0, 0, screenWidth, screenHeight);
-            renderMinimap(0, mapMagnif, 0, 0, 160, 90, actualMagif, hoverX, hoverY, screenWidth / actualMagif, screenHeight / actualMagif);
+            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
         }
     });
 

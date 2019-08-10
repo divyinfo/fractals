@@ -1,20 +1,26 @@
 ul.osx-dock li {
-    transition: 0.15s linear;
-    -webkit-transition: 0.15s linear;
-    transition-property: -webkit-transform margin;
-    -webkit-transition-property: -webkit-transform margin;
+    -webkit-transition: all .15s linear, box-shadow .85s ease-out;
+    transition: all .15s linear, box-shadow .85s ease-out;
+    
+    /* transition-property: -webkit-transform margin; */
+    /* -webkit-transition-property: -webkit-transform margin; */
 }
 
 ul.osx-dock li canvas {
     display: block;
+    
+    
     -webkit-transform: scale(0.9);
     transform: scale(0.9);
+
     -webkit-transform-origin: center left;
     transform-origin: center left;
-    transition: 0.15s linear;
-    -webkit-transition: 0.15s linear;
-    transition-property: -webkit-transform margin;
-    -webkit-transition-property: -webkit-transform margin;
+    
+    -webkit-transition: all .15s linear, box-shadow .85s ease-out;
+    transition: all .15s linear, box-shadow .85s ease-out;
+    
+    /* transition-property: -webkit-transform margin; */
+    /* -webkit-transition-property: -webkit-transform margin; */
     /* -webkit-box-reflect: below 2px; */
     /* -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.45, transparent), to(rgba(255, 255, 255, 0.25))); */
 }
