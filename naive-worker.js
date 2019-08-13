@@ -182,7 +182,7 @@ function calcIterationCountHighPrecision(x, y, maxIterations = 1000) {
         re2 = re.mul(re);
         im2 = im.mul(im);
 
-        if (re2.add(im2).cmp(4) > 0) {
+        if (re2.add(im2).gt(4)) {
             return i;
         }
     }
