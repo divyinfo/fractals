@@ -3,3 +3,5 @@ test.*
 *.test.*
 records.*
 mandel_*.png
+
+/node_modules
