@@ -20,22 +20,22 @@ body {
 
 #maps-container {
     margin: 0;
-    padding: 0;
+    padding: 15px;
     position: absolute;
-    width: 170px;
-    height: 100%;
+    width: 180px;
+    /* height: 100%; */
     top: 0;
     left: 0;
+
+    overflow-x: hidden;
 }
 
-#maps-container > li {
+#maps-container .li {
     position: relative;
     padding: 0;
-    width: 170px;
-    margin-left: 5px;
 }
 
-#maps-container > li canvas {
+#maps-container .li canvas {
     border: 1px solid rgba(255, 0, 0, .25);
 
     -moz-box-shadow: 0 0 1em rgba(255, 0, 0, 0.35);
@@ -43,7 +43,7 @@ body {
     box-shadow: 0 0 1em rgba(255, 0, 0, 0.35);
 }
 
-#maps-container > li.loading canvas,
+#maps-container .li.loading canvas,
 #visual-canvas.loading,
 .loading canvas {
     -moz-box-shadow: 0 0 4em rgba(255, 174, 66, 0.8);
@@ -51,8 +51,8 @@ body {
     box-shadow: 0 0 4em rgba(255, 174, 66, 0.8);
 }
 
-#maps-container > li.shadow:not(.loading) canvas,
-#maps-container > li:last-child:not(.loading) canvas {
+#maps-container .li.shadow:not(.loading) canvas,
+#maps-container .li:last-child:not(.loading) canvas {
     -moz-box-shadow: 0 0 2em rgba(0, 255, 0, 0.7);
     -webkit-box-shadow: 0 0 2em rgba(0, 255, 0, 0.7);
     box-shadow: 0 0 2em rgba(0, 255, 0, 0.7);

@@ -445,7 +445,7 @@
             lastMapCanvas.width = mapWidth;
             lastMapCanvas.height = mapHeight;
         
-            let li = $('<li></li>');
+            let li = $('<div class="li"></div>');
             let span = $('<span></span>');
             
             span.html(Math.round(currentMapMagnif));
@@ -457,7 +457,7 @@
                 nextMapCanvas.width = mapWidth;
                 nextMapCanvas.height = mapHeight;
             
-                let li = $('<li></li>');
+                let li = $('<div class="li"></div>');
                 let span = $('<span></span>');
                 
                 span.html(Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW));
@@ -645,7 +645,7 @@
 
             this.wheelInit = true;
 
-            $(document).bind('mousewheel', this.pairMainWheel.bind(this));
+            $('#visual-container').bind('mousewheel', this.pairMainWheel.bind(this));
         }
 
         pairMainWheel(e) {
@@ -704,7 +704,7 @@
                     nextMapCanvas.width = mapWidth;
                     nextMapCanvas.height = mapHeight;
                 
-                    let li = $('<li></li>');
+                    let li = $('<div class="li"></div>');
                     let span = $('<span></span>');
                     
                     span.html(Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW));
@@ -813,7 +813,7 @@
     var mapWidth = 160;
     var mapHeight = 90;
 
-    var visMagnif = 1000000;
+    var visMagnif = 1000000000000;
     var mapMagnif = 300;
     var hoverX = 0.3602404434376143632361252444495453084826078079585857504883758147401953460592;
     var hoverY = 0.6413130610648031748603750151793020665794949522823052595561775430644485741727;
@@ -848,6 +848,9 @@
     minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
     minimapManager.initPairMainDrag();
     minimapManager.initPairMainWheel();
+
+    $('#maps-container').css('max-height', screenHeight + 'px');
+    var simpleBar = new SimpleBar($('#maps-container')[0], { autoHide: false });
 
     $(document).keydown(function(e) {
         // Numpad +

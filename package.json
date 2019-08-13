@@ -23,6 +23,7 @@
     "big.js": "^5.2.2",
     "bigfloat": "^0.1.1",
     "common.js": "^1.1.1",
-    "requirejs": "^2.3.6"
+    "requirejs": "^2.3.6",
+    "simplebar": "^4.1.0"
   }
 }
