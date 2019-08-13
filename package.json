@@ -1,0 +1,27 @@
+{
+  "name": "fractals",
+  "version": "0.0.0",
+  "description": "fractals",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divyinfo/fractals.git"
+  },
+  "keywords": [
+    "fractals"
+  ],
+  "author": "divyinfo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/divyinfo/fractals/issues"
+  },
+  "homepage": "https://github.com/divyinfo/fractals#readme",
+  "dependencies": {
+    "bigfloat": "^0.1.1",
+    "common.js": "^1.1.1",
+    "requirejs": "^2.3.6"
+  }
+}

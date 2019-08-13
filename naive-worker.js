@@ -1,3 +1,9 @@
+importScripts('js/decimal.min.js');
+
+Decimal.set({ precision: 64 });
+
+// importScripts("js/bigfloat.js");
+
 const screenWidth = 1440;
 const screenHeight = 821;
 
@@ -145,6 +151,123 @@ function getMandelCounts(magnif, centerX, centerY, width, height, max = null) {
         }
         
         realY -= realYStep;
+    }
+
+    return {
+        final: true,
+        img: img, 
+        min: currentMinIterations,
+        max: currentMaxIterations,
+        magnif: magnif,
+        centerX: centerX,
+        centerY: centerY,
+        width: width,
+        height: height,
+    };
+}
+
+function calcIterationCountHighPrecision(x, y, maxIterations = 1000) {
+    let re = new Decimal(x);
+    let im = new Decimal(y);
+
+    let re2 = re.mul(re);
+    let im2 = im.mul(im);
+
+    for (let i = 0; i < maxIterations; i++) {            
+        im = im.mul(re);
+        im = im.add(im).add(y);
+
+        re = re2.sub(im2).add(x);
+
+        re2 = re.mul(re);
+        im2 = im.mul(im);
+
+        if (re2.add(im2).cmp(4) > 0) {
+            return i;
+        }
+    }
+
+    return 0;
+}
+
+function getMandelCountsHighPrecision(magnif, centerX, centerY, width, height, max = null) {
+
+    let maxIterations = max || getIterationLimit(magnif);
+    let currentMaxIterations = 0;
+    let currentMinIterations = maxIterations + 1;
+
+    let realXStep = 1 / magnif;
+    let realYStep = 1 / magnif;
+    
+    let realWHalf = width / magnif * 0.5;
+    let realHHalf = height / magnif * 0.5;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    let img = ctx.createImageData(width, height);
+    let imgShort = ctx.createImageData(width, height);
+    
+    let lastTS = performance.now();
+    let countY = 0;
+
+    let realY = (new Decimal(centerY)).add(realHHalf);
+
+    for (let y = 0, iData = 0, iDataShort = 0; y < height; y++, countY++) {
+        let realX = (new Decimal(centerX)).sub(realWHalf);
+
+        if (performance.now() - lastTS > 500 && countY > 0) {
+            postMessage({
+                final: false,
+                img: imgShort, 
+                min: currentMinIterations,
+                max: currentMaxIterations,
+                magnif: magnif,
+                centerX: centerX,
+                centerY: centerY,
+                width: width,
+                height: height,
+                partStartY: y - countY,
+                partHeight: countY,
+            });
+
+            iDataShort = 0;
+
+            lastTS = performance.now();
+            countY = 0;
+        }
+
+        for (let x = 0; x < width; x++) {
+            let iterationCount = calcIterationCountHighPrecision(realX, realY, maxIterations);
+
+            if (iterationCount > currentMaxIterations) {
+                currentMaxIterations = iterationCount;
+            }
+
+            if (iterationCount < currentMaxIterations) {
+                currentMinIterations = iterationCount;
+            }
+
+            // var rgb = iterationCount / 100 * 0xFFFFFF >> 0;
+
+            // var r = rgb >> 16 & 0XFF;
+            // var g = rgb >> 8 & 0XFF;
+            // var b = rgb >> 0 & 0XFF;
+
+            // ctx.fillStyle = 'hsl(0, 100%, ' + iterationCount + '%)';
+            // ctx.fillRect(x + startX, y + startY, 1, 1);
+
+            let escapeRatio = iterationCount * 255 / maxIterations;
+
+            img.data[iData++] = imgShort.data[iDataShort++] = escapeRatio;
+            img.data[iData++] = imgShort.data[iDataShort++] = 0;
+            img.data[iData++] = imgShort.data[iDataShort++] = 0;
+            img.data[iData++] = imgShort.data[iDataShort++] = 255;
+
+            realX = realX.add(realXStep);
+        }
+        
+        realY = realY.sub(realYStep);
     }
 
     return {
