@@ -840,17 +840,17 @@
 
     $(previewCanvas).hide();
 
+    $('#maps-container').css('max-height', screenHeight + 'px');
+    var simpleBar = new SimpleBar($('#maps-container')[0], { autoHide: false });
+
     var minimapManager = new MinimapManager;
     
     minimapManager.visMagnif = visMagnif;
     minimapManager.mapMagnif = mapMagnif;
     
-    minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
+    minimapManager.initMaps(mainCanvas, previewCanvas, $(simpleBar.getContentElement()), $('#visual-container'), hoverX, hoverY);
     minimapManager.initPairMainDrag();
     minimapManager.initPairMainWheel();
-
-    $('#maps-container').css('max-height', screenHeight + 'px');
-    var simpleBar = new SimpleBar($('#maps-container')[0], { autoHide: false });
 
     $(document).keydown(function(e) {
         // Numpad +

@@ -27,7 +27,7 @@ body {
     top: 0;
     left: 0;
 
-    overflow-x: hidden;
+    overflow-x: visible;
 }
 
 #maps-container .li {
