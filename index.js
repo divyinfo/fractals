@@ -413,7 +413,7 @@
             this.pairs = [];
             this.pairMain = null;
 
-            this.minStrokeW = 400;
+            this.minStrokeW = screenWidth * .3;
 
             this.dragInit = false;
             this.dragStartX = null;
@@ -740,6 +740,8 @@
                     console.log(i, this.pairs[i]);
                     this.pairs[i].moveTo();
                 }
+
+                miniBar.update();
             }
 
             if (this.wheelDirection < 0) {
@@ -807,8 +809,11 @@
         }
     }
 
-    var screenWidth = 1440;
-    var screenHeight = 821;
+    // var screenWidth = 1440;
+    // var screenHeight = 821;
+
+    var screenWidth = 1920;
+    var screenHeight = 978;
 
     var mapWidth = 160;
     var mapHeight = 90;
@@ -840,17 +845,23 @@
 
     $(previewCanvas).hide();
 
-    $('#maps-container').css('max-height', screenHeight + 'px');
-    var simpleBar = new SimpleBar($('#maps-container')[0], { autoHide: false });
+    // $('#maps-container').css('max-height', screenHeight + 'px');
+    var miniBar = new MiniBar($('#maps-container')[0], {
+        scrollX: false,
+        scrollY: true,
+        alwaysShowBars: true,
+    });
 
     var minimapManager = new MinimapManager;
     
     minimapManager.visMagnif = visMagnif;
     minimapManager.mapMagnif = mapMagnif;
     
-    minimapManager.initMaps(mainCanvas, previewCanvas, $(simpleBar.getContentElement()), $('#visual-container'), hoverX, hoverY);
+    minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container .mb-content'), $('#visual-container'), hoverX, hoverY);
     minimapManager.initPairMainDrag();
     minimapManager.initPairMainWheel();
+
+    miniBar.update();
 
     $(document).keydown(function(e) {
         // Numpad +

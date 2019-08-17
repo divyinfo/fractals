@@ -1,0 +1,28 @@
+.mb-bar {
+    /* background-color: #4C9689; */
+    background-color: rgba(76, 150, 137, .7);
+}
+  
+.mb-container > .mb-track {
+    /* background-color: #2E222D; */
+    background-color: rgba(255, 255, 255, .15);
+    border-radius: 5px;
+}
+
+.mb-container .mb-track-x {
+    height: 2px;
+    bottom: 4px;
+}
+.mb-container .mb-track-x .mb-bar {
+    height: 10px;
+    top: -4px;
+}
+
+.mb-container .mb-track-y {
+    width: 4px;
+    right: 5px;
+}
+.mb-container .mb-track-y .mb-bar {
+    width: 10px;
+    left: -3px;
+}
