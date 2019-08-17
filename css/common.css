@@ -102,7 +102,7 @@ body {
     padding: 0;
     position: absolute;
     width: 400px;
-    height: 100vh;
+    max-height: 100vh;
     top: 0;
     right: 0;
 }
