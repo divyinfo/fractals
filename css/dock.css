@@ -26,8 +26,8 @@ div.osx-dock .li canvas {
 }
 
 div.osx-dock .li:hover {
-    margin-top: 9px;
-    margin-bottom: 9px;
+    margin-top: 15px;
+    margin-bottom: 15px;
     z-index: 200;
 }
 
@@ -37,8 +37,8 @@ div.osx-dock .li:hover canvas {
 }
 
 div.osx-dock .li.nearby {
-    margin-top: 6px;
-    margin-bottom: 6px;
+    margin-top: 9px;
+    margin-bottom: 9px;
     z-index: 100;
 }
 

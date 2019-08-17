@@ -740,8 +740,6 @@
                     console.log(i, this.pairs[i]);
                     this.pairs[i].moveTo();
                 }
-
-                miniBar.update();
             }
 
             if (this.wheelDirection < 0) {
@@ -850,6 +848,9 @@
         scrollX: false,
         scrollY: true,
         alwaysShowBars: true,
+        onUpdate() {
+            this.scrollTo("end", "y");
+        }
     });
 
     var minimapManager = new MinimapManager;
