@@ -926,6 +926,18 @@
 
     miniBar.update();
 
+    $('#controlPanelToggler').click(function (e) {
+        if ($('#controlPanel').is(":hidden")) {
+            $('#controlPanel').fadeIn();
+            $(this).html('<i class="fas fa-angle-right"></i>');
+            console.log(this);
+        } else {
+            $('#controlPanel').fadeOut();
+            $(this).html('<i class="fas fa-angle-left"></i>');
+            console.log(this);
+        }
+    });
+
     $(document).keydown(function(e) {
         // Numpad +
         if (e.keyCode === 107 || e.keyCode === 187) {
