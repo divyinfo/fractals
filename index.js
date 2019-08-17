@@ -71,6 +71,19 @@
                 }
             }
         }
+
+        destroy() {
+            this.working = false;
+            
+            this.worker.onmessage = null;
+            this.worker.terminate();
+            
+            this.canvas = null;
+            this.context = null;
+            
+            this.doneCallback = null;
+            this.callbackThis = null;
+        }
     }
 
     class MapVisualPair {
@@ -176,6 +189,30 @@
                     }
                 });
             }
+        }
+
+        destroy() {
+            this.visContext = null;
+            this.mapContext = null;
+            this.previewContext = null;
+
+            $(this.mapCanvas).off();
+                
+            $(this.mapCanvas).removeData('jq-mouseover-attached');
+            $(this.mapCanvas).removeData('jq-mouseover-target');
+
+            $(this.mapCanvas).parent().remove();
+
+            this.visCanvas = null;
+            this.mapCanvas = null;
+            this.previewCanvas = null;
+
+            this.visImg = null;
+            this.mapImg = null;
+            this.previewImg = null;
+
+            this.visWorker.destroy();
+            this.mapWorker.destroy();
         }
 
         drawHoverArea(offsetRealX = 0, offsetRealY = 0) {
@@ -694,10 +731,10 @@
 
                 this.pairs.pop();
     
-                console.log(strokeW);
+                // console.log(strokeW);
 
                 while (strokeW < this.minStrokeW) {
-                    console.log(strokeW, currentMapMagnif);
+                    // console.log(strokeW, currentMapMagnif);
 
                     let nextMapCanvas = document.createElement('canvas');
     
@@ -713,12 +750,12 @@
                     let currentPair = new MapVisualPair;
                     
                     currentPair.visMagnif = Math.round(currentMapMagnif * nextMapCanvas.width / this.minStrokeW);
-                    currentPair.visCenterX = hoverX;
-                    currentPair.visCenterY = hoverY;
+                    currentPair.visCenterX = this.pairMain.visCenterX;
+                    currentPair.visCenterY = this.pairMain.visCenterY;
                 
                     currentPair.mapMagnif = Math.round(currentMapMagnif);
-                    currentPair.mapCenterX = this.pairs.length ? hoverX : 0;
-                    currentPair.mapCenterY = this.pairs.length ? hoverY : 0;
+                    currentPair.mapCenterX = this.pairs.length ? this.pairMain.visCenterX : 0;
+                    currentPair.mapCenterY = this.pairs.length ? this.pairMain.visCenterY : 0;
                 
                     currentPair.init(nextMapCanvas, lastMapCanvas, this.previewCanvas);
     
@@ -737,16 +774,16 @@
                 this.pairMain.init(this.visCanvas, lastMapCanvas, this.previewCanvas);
                 
                 for (let i = startingMapIndex; i < this.pairs.length; i++) {
-                    console.log(i, this.pairs[i]);
+                    console.log('Applied moveTo() on', i, this.pairs[i]);
                     this.pairs[i].moveTo();
                 }
             }
 
             if (this.wheelDirection < 0) {
-                console.log('Removing some maps now');
+                console.log('Checking if removing some maps is needed now');
 
                 let currentMapMagnif = Math.round(this.pairMain.mapMagnif);
-                let strokeW = this.visCanvas.width * currentMapMagnif / this.pairMain.visMagnif;
+                let strokeW = this.visCanvas.width * currentMapMagnif / this.visMagnif;
     
                 // this.pairs.push(this.pairMain);
 
@@ -755,17 +792,36 @@
                 // this.pairMain.init(this.visCanvas, lastMapCanvas, this.previewCanvas);
                 
                 for (let i = this.pairs.length - 1; i >= 0; i--) {
-                   
+
 
                     currentMapMagnif = Math.round(this.pairs[i].mapMagnif);
-                    strokeW = this.visCanvas.width * currentMapMagnif / this.pairs[i].visMagnif;
+                    strokeW = this.visCanvas.width * currentMapMagnif / this.visMagnif;
+
+                    console.log('Current map', i, 'strokeW', strokeW, 'mapMagnif', currentMapMagnif);
 
                     if (strokeW < screenWidth) {
-                        console.log('Stopped with index', i, 'removing from', i, 'to', this.pairs.length - 1);
+                        console.log('Stopped with index', i, 'removing from', i + 1, 'to', this.pairs.length - 1);
+
+                        this.pairMain = this.pairs[i];
+
+                        this.pairMain.visMagnif = this.visMagnif;
+                        this.pairMain.mapMagnif = currentMapMagnif;
+    
+                        this.pairMain.init(this.visCanvas, this.pairs[i].mapCanvas, this.previewCanvas);
+
+                        for (let r = i + 1, len = this.pairs.length; r < len; r++) {
+                            this.pairs[r].destroy();
+                        }
+
+                        if (i + 1 < this.pairs.length) {
+                            this.pairs.splice(i + 1);
+                        }
 
                         break;
                     }
                 }
+
+                this.pairMain.moveTo();
             }
 
             console.log('All current pairs, mouse wheeling stopped', this.pairs);
@@ -804,6 +860,12 @@
             }).bind(this));
     
             this.wheelGlobalID = window.requestAnimationFrame(this.pairMainStepWheel.bind(this));
+        }
+    }
+
+    class EffectManager {
+        constructor() {
+
         }
     }
 
