@@ -5,10 +5,12 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    
+
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+
     <link href="css/common.css" rel="stylesheet" type="text/css" />
     <link href="css/dock.css" rel="stylesheet" type="text/css" />
-    
+
     <link href="node_modules/minibarjs/dist/minibar.min.css" rel="stylesheet" type="text/css" />
     <link href="css/minibar.css" rel="stylesheet" type="text/css" />
 </head>
@@ -16,6 +18,98 @@
 <body>
     <div id="visual-container"></div>
     <div id="maps-container" class="osx-dock"></div>
+    <div id="controls-container">
+        <div class="container">
+            <div class="row">
+                <div class="col">
+
+                    <div class="py-3">
+
+                        <h3 class="mt-2 text-light">
+                            Control Panel
+                            <a href="#" class="btn btn-sm btn-danger">></a>
+                        </h3>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <ul class="nav nav-tabs card-header-tabs">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="true">General</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="profile-tab" data-toggle="tab" href="#profile" role="tab" aria-controls="profile" aria-selected="false">Effects</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">Algorithms</a>
+                                    </li>
+                                    <!-- <li class="nav-item">
+                                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
+                                    </li> -->
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                <div class="tab-content" id="myTabContent">
+                                    <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                                        <h5 class="card-title">General</h5>
+                                        <p class="card-text">
+                                            General parameters setting tab. Most of the adjustable common parameters can be set here. If not mentioned specifically, direct modifications on the field, textboxes, dropdowns etc., will take immediate effects.
+                                        </p>
+                                        <div class="form-group">
+                                            <label for="inputControlPanelWidth" class="">Control Panel Width</label>
+                                            <input type="number" class="form-control" id="inputControlPanelWidth" aria-describedby="helpControlPanelWidth" placeholder="Enter width in pixels">
+                                            <small id="helpControlPanelWidth" class="form-text text-muted">Size of this panel on the right, in pixels, only numbers.</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="inputOverviewWidth" class="">Overview Width</label>
+                                            <input type="number" class="form-control" id="inputOverviewWidth" aria-describedby="helpOverviewWidth" placeholder="Enter width in pixels">
+                                            <small id="helpOverviewWidth" class="form-text text-muted">Width of each overview panel, in pixels, only numbers.</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="inputVisualAreaWidth" class="">Visual Area Width</label>
+                                            <input type="number" class="form-control" id="inputVisualAreaWidth" aria-describedby="helpVisualAreaWidth" placeholder="Enter width in pixels">
+                                            <small id="helpVisualAreaWidth" class="form-text text-muted">Width of the main Visual Area.</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="inputVisualAreaHeight" class="">Visual Area Height</label>
+                                            <input type="number" class="form-control" id="inputVisualAreaHeight" aria-describedby="helpVisualAreaHeight" placeholder="Enter width in pixels">
+                                            <small id="helpVisualAreaHeight" class="form-text text-muted">Height of the main Visual Area.</small>
+                                        </div>
+                                        <a href="#" class="btn btn-primary">Button</a>
+                                    </div>
+                                    <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                                        <h5 class="card-title">Effects</h5>
+                                        <p class="card-text">Overview Techniques' effects tweaking.</p>
+                                        <div class="form-group">
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    Overview Effects Category
+                                                </button>
+                                                <div class="dropdown-menu">
+                                                    <a class="dropdown-item" href="#">Scrollbar</a>
+                                                    <a class="dropdown-item" href="#">Stacked Cards</a>
+                                                    <a class="dropdown-item" href="#">Tabs</a>
+                                                    <div class="dropdown-divider"></div>
+                                                    <a class="dropdown-item" href="#">Clear Effects (No Effects)</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a href="#" class="btn btn-primary">Button</a>
+                                    </div>
+                                    <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">
+                                        <h5 class="card-title">Algorithms</h5>
+                                        <p class="card-text">Settings related with algorithms, back end calculations, etc.</p>
+                                        <a href="#" class="btn btn-primary">Button</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- <ul class="osx-dock">
         <li class="active">
@@ -30,9 +124,9 @@
 
     <!-- <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script> -->
     <script src="js/jquery-3.4.1.min.js"></script>
-    
+
     <script src="js/bootstrap.bundle.min.js"></script>
-    
+
     <script src="node_modules/minibarjs/dist/minibar.min.js"></script>
 
     <script src="index.js"></script>

@@ -96,3 +96,13 @@ body {
     display: block;
     z-index: 400;
 }
+
+#controls-container {
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    width: 400px;
+    height: 100vh;
+    top: 0;
+    right: 0;
+}
