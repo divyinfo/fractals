@@ -53,6 +53,8 @@ body {
     -moz-box-shadow: 0 0 1em rgba(255, 0, 0, 0.35);
     -webkit-box-shadow: 0 0 1em rgba(255, 0, 0, 0.35);
     box-shadow: 0 0 1em rgba(255, 0, 0, 0.35);
+
+    border-radius: 10px;
 }
 
 #maps-container .li.loading canvas,
