@@ -993,7 +993,23 @@
         }
 
         destroy() {
-            
+            this.destroyScrollbar();
+            this.destroyStacked();
+            this.destroyTabs();
+        }
+
+        update() {
+            if (this.currentEffect === 'scrollbar') {
+                this.updateScrollbar();
+            }
+
+            if (this.currentEffect === 'stacked') {
+                this.updateScrollbar();
+            }
+
+            if (this.currentEffect === 'tabs') {
+                this.updateTabs();
+            }
         }
 
         initScrollbar() {
@@ -1037,6 +1053,10 @@
             $('#maps-container').removeClass('osx-dock');
         }
 
+        updateScrollbar() {
+
+        }
+
         initStacked() {
             if (this.currentEffect === 'stacked') {
                 return;
@@ -1066,13 +1086,15 @@
             if (currentMapsBottom > screenHeight) {
                 $('#maps-container').toggleClass('stacked', true);
 
+                $('#maps-container').css('height', 'calc(100vh - ' + (mapHeight + 10) + 'px' + ')');
+
                 for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
                     const pair = this.minimapManager.pairs[i];
 
                     if (i === 0) {
-                        $(pair.mapCanvas).parent().css('margin-top', '10px');
+                        // $(pair.mapCanvas).parent().css('margin-top', '10px');
                     } else {
-                        $(pair.mapCanvas).parent().css('margin-top', (firstMargin + stepMargin * i) + 'px');
+                        // $(pair.mapCanvas).parent().css('margin-top', (firstMargin + stepMargin * i) + 'px');
                     }
 
                     '-webkit-transform'
@@ -1081,6 +1103,7 @@
                     '-o-transform'
                     'transform'
 
+                    // $(pair.mapCanvas).parent().css('perspective', (160 + i * 60 / this.minimapManager.pairs.length) + 'px');
                     $(pair.mapCanvas).css('transform', 'rotateX(' + (- 45 + i * 30 / this.minimapManager.pairs.length) + 'deg)');
                     
                 }
@@ -1092,6 +1115,7 @@
             this.currentEffect = null;
 
             $('#maps-container').removeClass('stacked');
+            $('#maps-container').css('height', '');
 
             for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
                 const pair = this.minimapManager.pairs[i];
@@ -1099,6 +1123,10 @@
                 $(pair.mapCanvas).parent().css('margin-top', '').css('margin-bottom', '');                
                 $(pair.mapCanvas).css('transform', '');
             }
+
+        }
+
+        updateStacked() {
 
         }
 
@@ -1112,6 +1140,10 @@
 
         destroyTabs() {
             this.currentEffect = null;
+
+        }
+
+        updateTabs() {
 
         }
     }
