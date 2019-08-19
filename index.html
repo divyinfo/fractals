@@ -12,6 +12,7 @@
 
     <link href="css/common.css" rel="stylesheet" type="text/css" />
     <link href="css/dock.css" rel="stylesheet" type="text/css" />
+    <link href="css/stacked.css" rel="stylesheet" type="text/css" />
 
     <link href="node_modules/minibarjs/dist/minibar.min.css" rel="stylesheet" type="text/css" />
     <link href="css/minibar.css" rel="stylesheet" type="text/css" />
@@ -19,7 +20,7 @@
 
 <body>
     <div id="visual-container"></div>
-    <div id="maps-container" class="osx-dock"></div>
+    <div id="maps-container"></div>
     <div id="controls-container">
         <div class="container">
             <div class="row">
@@ -61,7 +62,7 @@
                                         <div class="form-group">
                                             <label for="inputControlPanelWidth" class="">Control Panel Width</label>
                                             <input type="number" class="form-control" id="inputControlPanelWidth" aria-describedby="helpControlPanelWidth" placeholder="Enter width in pixels">
-                                            <small id="helpControlPanelWidth" class="form-text text-muted">Size of this panel on the right, in pixels, only numbers.</small>
+                                            <small id="helpControlPanelWidth" class="form-text text-muted">Size of <span class="text-danger">this</span> panel on the right, in pixels, only numbers.</small>
                                         </div>
                                         <div class="form-group">
                                             <label for="inputOverviewWidth" class="">Overview Width</label>
@@ -71,12 +72,12 @@
                                         <div class="form-group">
                                             <label for="inputVisualAreaWidth" class="">Visual Area Width</label>
                                             <input type="number" class="form-control" id="inputVisualAreaWidth" aria-describedby="helpVisualAreaWidth" placeholder="Enter width in pixels">
-                                            <small id="helpVisualAreaWidth" class="form-text text-muted">Width of the main Visual Area.</small>
+                                            <small id="helpVisualAreaWidth" class="form-text text-muted">Width of the main Visual Area, in pixels, only numbers.</small>
                                         </div>
                                         <div class="form-group">
                                             <label for="inputVisualAreaHeight" class="">Visual Area Height</label>
                                             <input type="number" class="form-control" id="inputVisualAreaHeight" aria-describedby="helpVisualAreaHeight" placeholder="Enter width in pixels">
-                                            <small id="helpVisualAreaHeight" class="form-text text-muted">Height of the main Visual Area.</small>
+                                            <small id="helpVisualAreaHeight" class="form-text text-muted">Height of the main Visual Area, in pixels, only numbers.</small>
                                         </div>
                                         <!-- <a href="#" class="btn btn-primary">Button</a> -->
                                     </div>
@@ -85,17 +86,32 @@
                                         <p class="card-text">Overview Techniques' effects tweaking.</p>
                                         <div class="form-group">
                                             <div class="btn-group">
-                                                <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <button id="effectsDropdownBtn" type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-describedby="helpOverviewEffects">
                                                     Overview Effects Category
                                                 </button>
                                                 <div class="dropdown-menu">
-                                                    <a class="dropdown-item" href="#">Scrollbar</a>
-                                                    <a class="dropdown-item" href="#">Stacked Cards</a>
-                                                    <a class="dropdown-item" href="#">Tabs</a>
+                                                    <button class="dropdown-item" id="scrollbarActivator">Scrollbar + Dock</button>
+                                                    <button class="dropdown-item" id="stackedActivator">Stacked Cards</button>
+                                                    <button class="dropdown-item" id="tabsActivator">Tabs</button>
                                                     <div class="dropdown-divider"></div>
-                                                    <a class="dropdown-item" href="#">Clear Effects (No Effects)</a>
+                                                    <button class="dropdown-item" id="clearEffectsActivator">Clear Effects (No Effects)</button>
                                                 </div>
                                             </div>
+                                            <small id="helpOverviewEffects" class="form-text text-muted">Overview Effects are the different techniques of arranging the overviews displayed on the page.</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="btn-group">
+                                                <button id="previewEffectsDropdownBtn" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-describedby="helpPreviewEffects">
+                                                    Mini-Maps Preview Effects
+                                                </button>
+                                                <div class="dropdown-menu">
+                                                    <button class="dropdown-item" id="fadePreviewActivator">Fade In / Out</button>
+                                                    <button class="dropdown-item" id="zoomPreviewActivator">Zooming Through</button>
+                                                    <div class="dropdown-divider"></div>
+                                                    <button class="dropdown-item" id="clearPreviewEffectsActivator">Clear Effects (No Effects)</button>
+                                                </div>
+                                            </div>
+                                            <small id="helpPreviewEffects" class="form-text text-muted">Preview Effects are the visual effects occur when hovering over or browsing through different overview canvas.</small>
                                         </div>
                                         <!-- <a href="#" class="btn btn-primary">Button</a> -->
                                     </div>

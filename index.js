@@ -444,7 +444,7 @@
             this.visCanvas = null;
             this.previewCanvas = null;
             
-            this.mapContainer = null;
+            this.mapsContainer = null;
             this.visualContainer = null;
 
             this.pairs = [];
@@ -467,11 +467,11 @@
             this.wheelGlobalID = null;
         }
 
-        initMaps(visCanvas, previewCanvas, mapContainer, visualContainer, hoverX = 0, hoverY = 0) {
+        initMaps(visCanvas, previewCanvas, mapsContainer, visualContainer, hoverX = 0, hoverY = 0) {
             this.visCanvas = visCanvas;
             this.previewCanvas = previewCanvas;
 
-            this.mapContainer = mapContainer;
+            this.mapsContainer = mapsContainer;
             this.visualContainer = visualContainer;
 
             let currentMapMagnif = Math.round(this.mapMagnif);
@@ -486,7 +486,7 @@
             let span = $('<span></span>');
             
             span.html(Math.round(currentMapMagnif));
-            $(this.mapContainer).append(li.toggleClass('loading', true).append(span).append(lastMapCanvas));
+            $(this.mapsContainer).append(li.toggleClass('loading', true).append(span).append(lastMapCanvas));
 
             while (strokeW < this.minStrokeW) {
                 let nextMapCanvas = document.createElement('canvas');
@@ -498,7 +498,7 @@
                 let span = $('<span></span>');
                 
                 span.html(Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW));
-                $(this.mapContainer).append(li.toggleClass('loading', true).append(span).append(nextMapCanvas));
+                $(this.mapsContainer).append(li.toggleClass('loading', true).append(span).append(nextMapCanvas));
 
                 let currentPair = new MapVisualPair;
                 
@@ -745,7 +745,7 @@
                     let span = $('<span></span>');
                     
                     span.html(Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW));
-                    $(this.mapContainer).append(li.toggleClass('loading', true).append(span).append(nextMapCanvas));
+                    $(this.mapsContainer).append(li.toggleClass('loading', true).append(span).append(nextMapCanvas));
     
                     let currentPair = new MapVisualPair;
                     
@@ -865,6 +865,253 @@
 
     class EffectManager {
         constructor() {
+            this.minimapManager = null;
+
+            this.controlsInit = false;
+
+            this.currentEffect = null;
+            this.noEffectsText = null;
+
+            this.currentPreviewEffect = null;
+            this.noPreviewEffectsText = null;
+
+            this.scrollbarInstance = null;
+        }
+
+        init() {
+            if (!this.controlsInit) {
+                this.controlsInit = true;
+
+                // General page
+                
+                $('#controlPanelToggler').click((e) => {
+                    if ($('#controlPanel').is(":hidden")) {
+                        $('#controlPanel').fadeIn();
+                        $('#controlPanelToggler').html('<i class="fas fa-angle-right"></i>');
+                    } else {
+                        $('#controlPanel').fadeOut();
+                        $('#controlPanelToggler').html('<i class="fas fa-angle-left"></i>');
+                    }
+                });
+
+                $('#inputControlPanelWidth').change((e) => {
+                    controlPanelWidth = Math.round($('#inputControlPanelWidth').val());
+                    $('#controls-container').css('width', controlPanelWidth + 'px');
+                }).val(controlPanelWidth);
+
+                $('#inputOverviewWidth').change((e) => {
+                    mapWidth = Math.round($('#inputOverviewWidth').val());
+                    mapHeight = Math.round(mapWidth * 9 / 16);
+
+                    $(this.minimapManager.mapsContainer).find('canvas').css('width', mapWidth + 'px');
+                    $(this.minimapManager.mapsContainer).find('canvas').css('height', mapHeight + 'px');
+                }).val(mapWidth);
+
+                $('#inputVisualAreaWidth').change((e) => {
+                    screenWidth = Math.round($('#inputVisualAreaWidth').val());
+
+                    mainCanvas.width = screenWidth;
+                    mainCanvas.height = screenHeight;
+
+                    previewCanvas.width = screenWidth;
+                    previewCanvas.height = screenHeight;
+
+                    this.minimapManager.pairMain.moveTo();
+                }).val(screenWidth);
+
+                $('#inputVisualAreaHeight').change((e) => {
+                    screenHeight = Math.round($('#inputVisualAreaHeight').val());
+
+                    mainCanvas.width = screenWidth;
+                    mainCanvas.height = screenHeight;
+                    
+                    previewCanvas.width = screenWidth;
+                    previewCanvas.height = screenHeight;
+
+                    this.minimapManager.pairMain.moveTo();
+                }).val(screenHeight);
+
+                // Effects page
+
+                this.noEffectsText = $('#effectsDropdownBtn').html();
+
+                $('#scrollbarActivator').click((e) => {
+                    $('#effectsDropdownBtn').html($('#scrollbarActivator').html());
+
+                    // this.destroyScrollbar();
+                    this.destroyStacked();
+                    this.destroyTabs();
+
+                    this.initScrollbar();
+                });
+
+                $('#stackedActivator').click((e) => {
+                    $('#effectsDropdownBtn').html($('#stackedActivator').html());
+
+                    this.destroyScrollbar();
+                    // this.destroyStacked();
+                    this.destroyTabs();
+
+                    this.initStacked();
+                });
+
+                $('#tabsActivator').click((e) => {
+                    $('#effectsDropdownBtn').html($('#tabsActivator').html());
+
+                    this.destroyScrollbar();
+                    this.destroyStacked();
+                    // this.destroyTabs();
+
+                    this.initTabs();
+                });
+
+                $('#clearEffectsActivator').click((e) => {
+                    $('#effectsDropdownBtn').html(this.noEffectsText);
+
+                    this.destroyScrollbar();
+                    this.destroyStacked();
+                    this.destroyTabs();
+                });
+
+                this.noPreviewEffectsText = $('#previewEffectsDropdownBtn').html();
+
+                $('#fadePreviewActivator').click((e) => {
+                    $('#previewEffectsDropdownBtn').html($('#fadePreviewActivator').html());
+                });
+
+                $('#zoomPreviewActivator').click((e) => {
+                    $('#previewEffectsDropdownBtn').html($('#zoomPreviewActivator').html());
+                });
+
+                $('#clearPreviewEffectsActivator').click((e) => {
+                    $('#previewEffectsDropdownBtn').html(this.noPreviewEffectsText);
+                });
+
+                // Algorithms page
+
+            }
+        }
+
+        destroy() {
+            
+        }
+
+        initScrollbar() {
+            if (this.currentEffect === 'scrollbar') {
+                return;
+            }
+
+            this.currentEffect = 'scrollbar';
+
+            if (this.scrollbarInstance) {
+                this.destroyScrollbar();
+            }
+
+            // $(this.mapsContainer).css('max-height', screenHeight + 'px');
+            this.scrollbarInstance = new MiniBar($(this.minimapManager.mapsContainer)[0], {
+                scrollX: false,
+                scrollY: true,
+                alwaysShowBars: true,
+                onUpdate() {
+                    this.scrollTo("end", "y");
+                }
+            });
+
+            this.minimapManager.mapsContainer = $(this.minimapManager.mapsContainer).find('.mb-content').first();
+
+            // this.scrollbarInstance.update();
+
+            $('#maps-container').toggleClass('osx-dock', true);
+        }
+
+        destroyScrollbar() {
+            this.currentEffect = null;
+
+            if (this.scrollbarInstance) {
+                this.scrollbarInstance.destroy();
+
+                this.scrollbarInstance = null;
+                this.minimapManager.mapsContainer = $('#maps-container');
+            }
+            
+            $('#maps-container').removeClass('osx-dock');
+        }
+
+        initStacked() {
+            if (this.currentEffect === 'stacked') {
+                return;
+            }
+
+            this.currentEffect = 'stacked';
+
+            let currentMapsBottom = this.minimapManager.pairs.length * (mapHeight + 2 + 10) + 10;
+            let perMapHeight = Math.floor((screenHeight - 10 - mapHeight - 2 - 10 - 1) / (this.minimapManager.pairs.length - 1)) - 2;
+            let avgMargin = perMapHeight - mapHeight - 2;
+            let firstMargin = avgMargin - (10 - avgMargin);
+            let stepMargin = (10 - avgMargin) * 2 / (this.minimapManager.pairs.length - 1);
+
+            if (firstMargin <= -mapHeight + 5) {
+                firstMargin = -mapHeight + 5;
+                stepMargin = (avgMargin - firstMargin) * 2 / (this.minimapManager.pairs.length - 1);                
+            }
+
+            console.log(
+                'currentMapsBottom', currentMapsBottom,
+                'perMapHeight', perMapHeight,
+                'avgMargin', avgMargin,
+                'firstMargin', firstMargin,
+                'stepMargin', stepMargin
+            );
+
+            if (currentMapsBottom > screenHeight) {
+                $('#maps-container').toggleClass('stacked', true);
+
+                for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
+                    const pair = this.minimapManager.pairs[i];
+
+                    if (i === 0) {
+                        $(pair.mapCanvas).parent().css('margin-top', '10px');
+                    } else {
+                        $(pair.mapCanvas).parent().css('margin-top', (firstMargin + stepMargin * i) + 'px');
+                    }
+
+                    '-webkit-transform'
+                    '-moz-transform'
+                    '-ms-transform'
+                    '-o-transform'
+                    'transform'
+
+                    $(pair.mapCanvas).css('transform', 'rotateX(' + (- 45 + i * 30 / this.minimapManager.pairs.length) + 'deg)');
+                    
+                }
+            }
+            
+        }
+
+        destroyStacked() {
+            this.currentEffect = null;
+
+            $('#maps-container').removeClass('stacked');
+
+            for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
+                const pair = this.minimapManager.pairs[i];
+
+                $(pair.mapCanvas).parent().css('margin-top', '').css('margin-bottom', '');                
+                $(pair.mapCanvas).css('transform', '');
+            }
+
+        }
+
+        initTabs() {
+            if (this.currentEffect === 'tabs') {
+                return;
+            }
+
+            this.currentEffect = 'tabs';
+        }
+
+        destroyTabs() {
+            this.currentEffect = null;
 
         }
     }
@@ -877,6 +1124,8 @@
 
     var mapWidth = 160;
     var mapHeight = 90;
+
+    var controlPanelWidth = 400;
 
     var visMagnif = 10000;
     var mapMagnif = 300;
@@ -905,81 +1154,61 @@
 
     $(previewCanvas).hide();
 
-    // $('#maps-container').css('max-height', screenHeight + 'px');
-    var miniBar = new MiniBar($('#maps-container')[0], {
-        scrollX: false,
-        scrollY: true,
-        alwaysShowBars: true,
-        onUpdate() {
-            this.scrollTo("end", "y");
-        }
-    });
-
     var minimapManager = new MinimapManager;
     
     minimapManager.visMagnif = visMagnif;
     minimapManager.mapMagnif = mapMagnif;
     
-    minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container .mb-content'), $('#visual-container'), hoverX, hoverY);
+    minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
     minimapManager.initPairMainDrag();
     minimapManager.initPairMainWheel();
 
-    miniBar.update();
+    var effectManager = new EffectManager;
+    effectManager.minimapManager = minimapManager;
+    effectManager.init();
 
-    $('#controlPanelToggler').click(function (e) {
-        if ($('#controlPanel').is(":hidden")) {
-            $('#controlPanel').fadeIn();
-            $(this).html('<i class="fas fa-angle-right"></i>');
-            console.log(this);
-        } else {
-            $('#controlPanel').fadeOut();
-            $(this).html('<i class="fas fa-angle-left"></i>');
-            console.log(this);
-        }
-    });
+    // $(document).keydown(function(e) {
+    //     // Numpad +
+    //     if (e.keyCode === 107 || e.keyCode === 187) {
+    //         actualMagif *= 2;
 
-    $(document).keydown(function(e) {
-        // Numpad +
-        if (e.keyCode === 107 || e.keyCode === 187) {
-            actualMagif *= 2;
+    //         naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
+    //     }
 
-            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
-        }
+    //     // Numpad -
+    //     if (e.keyCode === 109 || e.keyCode === 189) {
+    //         actualMagif *= 0.5;
 
-        // Numpad -
-        if (e.keyCode === 109 || e.keyCode === 189) {
-            actualMagif *= 0.5;
+    //         naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
+    //     }
 
-            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
-        }
+    //     // ArrowUp
+    //     if (e.keyCode === 38 || e.keyCode === 87) {
+    //         hoverY += 100 / actualMagif;
 
-        // ArrowUp
-        if (e.keyCode === 38 || e.keyCode === 87) {
-            hoverY += 100 / actualMagif;
+    //         naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
+    //     }
 
-            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
-        }
+    //     // ArrowDown
+    //     if (e.keyCode === 40 || e.keyCode === 83) {
+    //         hoverY -= 100 / actualMagif;
 
-        // ArrowDown
-        if (e.keyCode === 40 || e.keyCode === 83) {
-            hoverY -= 100 / actualMagif;
+    //         naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
+    //     }
 
-            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
-        }
+    //     // ArrowLeft
+    //     if (e.keyCode === 37 || e.keyCode === 65) {
+    //         hoverX -= 100 / actualMagif;
 
-        // ArrowLeft
-        if (e.keyCode === 37 || e.keyCode === 65) {
-            hoverX -= 100 / actualMagif;
+    //         naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
+    //     }
 
-            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
-        }
+    //     // ArrowRight
+    //     if (e.keyCode === 39 || e.keyCode === 68) {
+    //         hoverX += 100 / actualMagif;
 
-        // ArrowRight
-        if (e.keyCode === 39 || e.keyCode === 68) {
-            hoverX += 100 / actualMagif;
-
-            naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
-        }
-    });
+    //         naiveWorker.work(actualMagif, hoverX, hoverY, screenWidth << 1, screenHeight << 1);
+    //     }
+    // });
 
 })()

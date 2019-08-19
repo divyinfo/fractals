@@ -1,0 +1,10 @@
+#maps-container.stacked .li {
+    margin: 0;
+
+    perspective: 200px;
+    perspective-origin: left;
+}
+
+#maps-container.stacked .li span {
+    top: 60px;
+}

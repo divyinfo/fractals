@@ -1,4 +1,6 @@
-div.osx-dock .li {
+#maps-container.osx-dock .li {
+    margin: 0;
+
     -webkit-transition: all .15s linear, box-shadow .85s ease-out;
     transition: all .15s linear, box-shadow .85s ease-out;
     
@@ -6,7 +8,7 @@ div.osx-dock .li {
     /* -webkit-transition-property: -webkit-transform margin; */
 }
 
-div.osx-dock .li canvas {
+#maps-container.osx-dock .li canvas {
     display: block;
     
     
@@ -25,24 +27,24 @@ div.osx-dock .li canvas {
     /* -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.45, transparent), to(rgba(255, 255, 255, 0.25))); */
 }
 
-div.osx-dock .li:hover {
+#maps-container.osx-dock .li:hover {
     margin-top: 15px;
     margin-bottom: 15px;
     z-index: 200;
 }
 
-div.osx-dock .li:hover canvas {
+#maps-container.osx-dock .li:hover canvas {
     -webkit-transform: scale(1.1);
     transform: scale(1.1);
 }
 
-div.osx-dock .li.nearby {
+#maps-container.osx-dock .li.nearby {
     margin-top: 9px;
     margin-bottom: 9px;
     z-index: 100;
 }
 
-div.osx-dock .li.nearby canvas {
+#maps-container.osx-dock .li.nearby canvas {
     -webkit-transform: scale(0.93);
     transform: scale(0.93);
 }
