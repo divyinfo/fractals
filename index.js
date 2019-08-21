@@ -465,6 +465,8 @@
             this.wheelCurrentRatio = null;
             this.wheelTimeoutGlobalID = null;
             this.wheelGlobalID = null;
+
+            this.effectManager = null;
         }
 
         initMaps(visCanvas, previewCanvas, mapsContainer, visualContainer, hoverX = 0, hoverY = 0) {
@@ -828,7 +830,18 @@
     
             this.wheelDirection = null;
             this.wheelStartMagnif = null;
-            this.wheelCurrentRatio = null;    
+            this.wheelCurrentRatio = null;
+
+            console.log('before update');
+
+            if (this.effectManager) {
+                console.log('this.effectManager.update');
+                this.effectManager.update();
+            } else {
+                if (typeof effectManager !== 'undefined') {
+                    effectManager.update();
+                }
+            }
         }
 
         pairMainStepWheel() {
@@ -1004,7 +1017,7 @@
             }
 
             if (this.currentEffect === 'stacked') {
-                this.updateScrollbar();
+                this.updateStacked();
             }
 
             if (this.currentEffect === 'tabs') {
@@ -1054,7 +1067,13 @@
         }
 
         updateScrollbar() {
+            if (this.currentEffect !== 'scrollbar') {
+                return;
+            }
 
+            if (this.scrollbarInstance) {
+                this.scrollbarInstance.update();
+            }
         }
 
         initStacked() {
@@ -1063,6 +1082,31 @@
             }
 
             this.currentEffect = 'stacked';
+
+            this.updateStacked();            
+        }
+
+        destroyStacked() {
+            this.currentEffect = null;
+
+            $('#maps-container').removeClass('stacked');
+            $('#maps-container').css('height', '');
+
+            for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
+                const pair = this.minimapManager.pairs[i];
+
+                $(pair.mapCanvas).parent().css('margin-top', '').css('margin-bottom', '');                
+                $(pair.mapCanvas).css('transform', '');
+            }
+
+        }
+
+        updateStacked() {
+            if (this.currentEffect !== 'stacked') {
+                return;
+            }
+
+            console.log('update stacked');
 
             let currentMapsBottom = this.minimapManager.pairs.length * (mapHeight + 2 + 10) + 10;
             let perMapHeight = Math.floor((screenHeight - 10 - mapHeight - 2 - 10 - 1) / (this.minimapManager.pairs.length - 1)) - 2;
@@ -1074,14 +1118,6 @@
                 firstMargin = -mapHeight + 5;
                 stepMargin = (avgMargin - firstMargin) * 2 / (this.minimapManager.pairs.length - 1);                
             }
-
-            console.log(
-                'currentMapsBottom', currentMapsBottom,
-                'perMapHeight', perMapHeight,
-                'avgMargin', avgMargin,
-                'firstMargin', firstMargin,
-                'stepMargin', stepMargin
-            );
 
             if (currentMapsBottom > screenHeight) {
                 $('#maps-container').toggleClass('stacked', true);
@@ -1108,26 +1144,6 @@
                     
                 }
             }
-            
-        }
-
-        destroyStacked() {
-            this.currentEffect = null;
-
-            $('#maps-container').removeClass('stacked');
-            $('#maps-container').css('height', '');
-
-            for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
-                const pair = this.minimapManager.pairs[i];
-
-                $(pair.mapCanvas).parent().css('margin-top', '').css('margin-bottom', '');                
-                $(pair.mapCanvas).css('transform', '');
-            }
-
-        }
-
-        updateStacked() {
-
         }
 
         initTabs() {
@@ -1198,6 +1214,8 @@
     var effectManager = new EffectManager;
     effectManager.minimapManager = minimapManager;
     effectManager.init();
+
+    minimapManager.effectManager = effectManager;
 
     // $(document).keydown(function(e) {
     //     // Numpad +
