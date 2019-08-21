@@ -832,10 +832,7 @@
             this.wheelStartMagnif = null;
             this.wheelCurrentRatio = null;
 
-            console.log('before update');
-
             if (this.effectManager) {
-                console.log('this.effectManager.update');
                 this.effectManager.update();
             } else {
                 if (typeof effectManager !== 'undefined') {
@@ -1083,7 +1080,7 @@
 
             this.currentEffect = 'stacked';
 
-            this.updateStacked();            
+            this.updateStacked();
         }
 
         destroyStacked() {
@@ -1105,8 +1102,6 @@
             if (this.currentEffect !== 'stacked') {
                 return;
             }
-
-            console.log('update stacked');
 
             let currentMapsBottom = this.minimapManager.pairs.length * (mapHeight + 2 + 10) + 10;
             let perMapHeight = Math.floor((screenHeight - 10 - mapHeight - 2 - 10 - 1) / (this.minimapManager.pairs.length - 1)) - 2;
@@ -1152,15 +1147,62 @@
             }
 
             this.currentEffect = 'tabs';
+
+            this.updateTabs();
         }
 
         destroyTabs() {
             this.currentEffect = null;
 
+            $('#maps-container').removeClass('tabs');
+            $('#maps-container').css('width', '');
+
+            for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
+                const pair = this.minimapManager.pairs[i];
+
+                $(pair.mapCanvas).parent().css('flex', '');
+                $(pair.mapCanvas).parent().css('height', '');
+                
+                $(pair.mapCanvas).css('position', '');
+                $(pair.mapCanvas).css('left', '');
+                $(pair.mapCanvas).css('margin-left', '');
+            }
         }
 
         updateTabs() {
+            if (this.currentEffect !== 'tabs') {
+                return;
+            }
 
+            $('#maps-container').toggleClass('tabs', true);
+            $('#maps-container').css('width', 'calc(100vw - ' + (controlPanelWidth + 10) + 'px' + ')');
+            
+            let currentMapsRight = this.minimapManager.pairs.length * (mapWidth + 2 + 10) + 10;
+            let containerMaxWidth = screenWidth - controlPanelWidth - 10;
+
+            if (currentMapsRight < containerMaxWidth) {
+                for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
+                    const pair = this.minimapManager.pairs[i];
+
+                    $(pair.mapCanvas).parent().css('flex', 'none');
+                    $(pair.mapCanvas).parent().css('height', '');
+                    
+                    $(pair.mapCanvas).css('position', '');
+                    $(pair.mapCanvas).css('left', '');
+                    $(pair.mapCanvas).css('margin-left', '');
+                }
+            } else {
+                for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
+                    const pair = this.minimapManager.pairs[i];
+
+                    $(pair.mapCanvas).parent().css('flex', '');
+                    $(pair.mapCanvas).parent().css('height', mapHeight + 2 + 'px');
+                    
+                    $(pair.mapCanvas).css('position', 'absolute');
+                    $(pair.mapCanvas).css('left', '50%');
+                    $(pair.mapCanvas).css('margin-left', - (mapWidth + 2 >> 1) + 'px');
+                }
+            }
         }
     }
 
