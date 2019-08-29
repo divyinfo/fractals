@@ -29,7 +29,7 @@
 }
 
 #maps-container.tabs .li span {
-    top: 65px;
+    top: calc(100%);
 }
 
 #maps-container.tabs .li {

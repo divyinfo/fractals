@@ -109,23 +109,37 @@
             this.visCenterX = 0;
             this.visCenterY = 0;
 
+            this.visCanvasWidth = 800;
+            this.visCanvasHeight = 600;
+
             this.visImgOffsetX = 0;
             this.visImgOffsetY = 0;
 
             this.mapCenterX = 0;
             this.mapCenterY = 0;
 
-            this.disablePartialEffects = false;
+            this.previewActive = false;
+            
+            this.mouseOverCallback = null;
+            this.mouseOverCallbackThis = null;
+            this.mouseOutCallback = null;
+            this.mouseOutCallbackThis = null;
         }
 
-        init(visCanvas, mapCanvas, previewCanvas) {
-            this.visCanvas = visCanvas;
+        init(mapCanvas, previewCanvas, visCanvas = null) {
             this.mapCanvas = mapCanvas;
             this.previewCanvas = previewCanvas;
-
-            this.visContext = visCanvas.getContext('2d');
+            
             this.mapContext = mapCanvas.getContext('2d');
             this.previewContext = previewCanvas.getContext('2d');
+            
+            if (visCanvas) {
+                this.visCanvas = visCanvas;
+                this.visContext = visCanvas.getContext('2d');
+            } else {
+                this.visCanvas = null;
+                this.visContext = null;
+            }
 
             if ($(mapCanvas).data('jq-mouseover-attached') && $(mapCanvas).data('jq-mouseover-target') !== this) {
                 $(mapCanvas).off();
@@ -154,13 +168,19 @@
                     li.next().toggleClass('nearby', true);
 
                     if (currentPair) {
+                        currentPair.previewActive = true;
 
-                        if (currentPair.previewContext && currentPair.previewImg) {
-                            currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
-                            currentPair.drawHoverArea();
+                        if (currentPair.mouseOverCallback) {
+                            currentPair.mouseOverCallback.apply(currentPair.mouseOverCallbackThis ? currentPair.mouseOverCallbackThis : null, [e, currentPair]);
+                        } else {
+                            if (currentPair.previewContext && currentPair.previewImg) {
+                                currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
+                                currentPair.drawPreviewHoverArea();
+                            }
+
+                            $(currentPair.previewCanvas).stop().show(0);
                         }
 
-                        $(currentPair.previewCanvas).stop().fadeTo(400, Math.random() * 0.15 + 0.85);
                     }
     
                 });
@@ -180,12 +200,19 @@
                     li.next().removeClass('nearby');
 
                     if (currentPair) {
-                        if (currentPair.previewContext && currentPair.previewImg) {
-                            currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
-                            currentPair.drawHoverArea();
+                        currentPair.previewActive = false;
+
+                        if (currentPair.mouseOutCallback) {
+                            currentPair.mouseOutCallback.apply(currentPair.mouseOutCallbackThis ? currentPair.mouseOutCallbackThis : null, [e, currentPair]);
+                        } else {
+                            // if (currentPair.previewContext && currentPair.previewImg) {
+                            //     currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
+                            //     currentPair.drawPreviewHoverArea();
+                            // }
+
+                            $(currentPair.previewCanvas).stop().hide(0);
                         }
 
-                        $(currentPair.previewCanvas).stop().fadeTo(400, 0);
                     }
                 });
             }
@@ -213,19 +240,68 @@
 
             this.visWorker.destroy();
             this.mapWorker.destroy();
+
+            this.mouseOverCallback = null;
+            this.mouseOverCallbackThis = null;
+            this.mouseOutCallback = null;
+            this.mouseOutCallbackThis = null;
         }
 
-        drawHoverArea(offsetRealX = 0, offsetRealY = 0) {
+        drawMapHoverArea(offsetRealX = 0, offsetRealY = 0) {
             if (this.mapImg) {
                 this.mapContext.putImageData(this.mapImg, 0, 0);
             }
 
+            let areaRealWidth = this.visCanvasWidth / this.visMagnif;
+            let areaRealHeight = this.visCanvasHeight / this.visMagnif;
+
+            let areaRealStartX = offsetRealX + this.visCenterX - areaRealWidth * .5 - this.mapCenterX;
+            let areaRealStartY = offsetRealY + this.visCenterY + areaRealHeight * .5 - this.mapCenterY;
+
+            let strokeX = this.previewCanvas.width * .5 + areaRealStartX * this.mapMagnif;
+            let strokeY = this.previewCanvas.height * .5 - areaRealStartY * this.mapMagnif;
+            let strokeW = areaRealWidth * this.mapMagnif;
+            let strokeH = areaRealHeight * this.mapMagnif;
+
+            if (strokeW <= 1) {
+                strokeW = 1;
+            }
+
+            if (strokeH <= 1) {
+                strokeH = 1;
+            }
+
+            strokeX = strokeX * this.mapCanvas.width / this.previewCanvas.width;
+            strokeY = strokeY * this.mapCanvas.height / this.previewCanvas.height;
+            strokeW = strokeW * this.mapCanvas.width / this.previewCanvas.width;
+            strokeH = strokeH * this.mapCanvas.height / this.previewCanvas.height;
+
+            if (strokeW <= 1) {
+                strokeW = 1;
+            }
+
+            if (strokeH <= 1) {
+                strokeH = 1;
+            }
+
+            this.mapContext.beginPath();
+            this.mapContext.lineWidth = 1;
+            this.mapContext.strokeStyle = 'rgba(255, 0, 255, 1)';
+            this.mapContext.strokeRect(
+                strokeX,
+                strokeY,
+                strokeW,
+                strokeH
+            );
+        }
+
+        drawPreviewHoverArea(offsetRealX = 0, offsetRealY = 0) {
             if (this.previewImg) {
                 this.previewContext.putImageData(this.previewImg, 0, 0);
             }
 
-            let areaRealWidth = this.visCanvas.width / this.visMagnif;
-            let areaRealHeight = this.visCanvas.height / this.visMagnif;
+            let areaRealWidth = this.visCanvasWidth / this.visMagnif;
+            let areaRealHeight = this.visCanvasHeight / this.visMagnif;
 
             let areaRealStartX = offsetRealX + this.visCenterX - areaRealWidth * .5 - this.mapCenterX;
             let areaRealStartY = offsetRealY + this.visCenterY + areaRealHeight * .5 - this.mapCenterY;
@@ -252,45 +328,6 @@
                 strokeW,
                 strokeH
             );
-
-            // console.log(
-            //     'this.visMagnif', this.visMagnif,
-            //     'this.mapMagnif', this.mapMagnif,
-            //     this.previewImg,
-            //     this.mapImg,
-            //     'map',
-            //     this.mapCenterX,
-            //     this.mapCenterY,
-            //     'vis',
-            //     this.visCenterX,
-            //     this.visCenterY,
-            //     'strokeW', strokeW,
-            //     'strokeH', strokeH,
-            //     'EOL'
-            // );
-
-            strokeX = strokeX * this.mapCanvas.width / this.previewCanvas.width;
-            strokeY = strokeY * this.mapCanvas.height / this.previewCanvas.height;
-            strokeW = strokeW * this.mapCanvas.width / this.previewCanvas.width;
-            strokeH = strokeH * this.mapCanvas.height / this.previewCanvas.height;
-
-            if (strokeW <= 1) {
-                strokeW = 1;
-            }
-
-            if (strokeH <= 1) {
-                strokeH = 1;
-            }
-
-            this.mapContext.beginPath();
-            this.mapContext.lineWidth = 1;
-            this.mapContext.strokeStyle = 'rgba(255, 0, 255, 1)';
-            this.mapContext.strokeRect(
-                strokeX,
-                strokeY,
-                strokeW,
-                strokeH
-            );
         }
 
         moveTo(x = null, y = null) {
@@ -302,14 +339,152 @@
                 this.visCenterY = y;
             }
 
-            $(this.visCanvas).parent().toggleClass('loading', true);
             $(this.mapCanvas).parent().toggleClass('loading', true);
+
+            this.mapWorker.work(this.mapMagnif, this.mapCenterX, this.mapCenterY, this.previewCanvas.width, this.previewCanvas.height, (e) => {
+                if (e.data.final === false && typeof e.data.partStartY !== 'undefined' && typeof e.data.partHeight !== 'undefined') {
+                    // console.log('Received partial render result for Minimap & Preview', e.data);
+
+                    let imgPart = e.data.img;
+
+                    let tempCanvas = new OffscreenCanvas(e.data.width, e.data.height);
+                    let tempContext = tempCanvas.getContext('2d');
+
+                    if (this.previewImg) {
+                        tempContext.putImageData(this.previewImg, 0, 0);
+                    }
+
+                    tempContext.putImageData(
+                        imgPart,
+                        0,
+                        e.data.partStartY,
+                        0,
+                        0,
+                        e.data.width,
+                        e.data.partHeight
+                    );
+
+                    this.previewImg = tempContext.getImageData(0, 0, e.data.width, e.data.height);
+
+                    tempCanvas = null;
+                    tempContext = null;
+
+                    if (this.previewActive) {
+                        this.drawPreviewHoverArea();
+
+                        let partStrokeY = (this.previewCanvas.height - e.data.height >> 1) + e.data.partStartY;
+                        let partStrokeH = e.data.partHeight;
+
+                        this.previewContext.beginPath();
+                        this.previewContext.lineWidth = 1;
+                        this.previewContext.strokeStyle = 'rgba(0, 255, 0, 1)';
+                        this.previewContext.strokeRect(
+                            1,
+                            partStrokeY,
+                            this.previewCanvas.width - 2,
+                            partStrokeH > 1 ? partStrokeH : 1
+                        );
+                    }
+
+                    createImageBitmap(imgPart).then(((imgBitmap) => {
+                        if (this.mapImg) {
+                            this.mapContext.putImageData(this.mapImg, 0, 0);
+                        }
+
+                        this.mapContext.drawImage(
+                            imgBitmap,
+                            0, 0, imgBitmap.width, e.data.partHeight,
+                            0,
+                            e.data.partStartY / this.previewCanvas.height * this.mapCanvas.height,
+                            this.mapCanvas.width,
+                            e.data.partHeight / this.previewCanvas.height * this.mapCanvas.height
+                        );
+
+                        this.mapImg = this.mapContext.getImageData(0, 0, this.mapCanvas.width, this.mapCanvas.height);
+
+                        this.drawMapHoverArea();
+
+                        let partStrokeY = ((this.previewCanvas.height - e.data.height >> 1) + e.data.partStartY) * this.mapCanvas.height / this.previewCanvas.height;
+                        let partStrokeH = e.data.partHeight * this.mapCanvas.height / this.previewCanvas.height;
+
+                        this.mapContext.beginPath();
+                        this.mapContext.lineWidth = 1;
+                        this.mapContext.strokeStyle = 'rgba(0, 255, 0, 1)';
+                        this.mapContext.strokeRect(
+                            1,
+                            partStrokeY,
+                            this.mapCanvas.width - 2,
+                            partStrokeH > 1 ? partStrokeH : 1
+                        );
+
+                    }).bind(this));
+
+                    if (this.visWorker.working || this.mapWorker.working) {
+                        $(this.visCanvas).parent().toggleClass('loading', true);
+                        $(this.mapCanvas).parent().toggleClass('loading', true);
+                    }
+                }
+
+                if (e.data.final) {
+                    let img = e.data.img;
+                    
+                    this.previewImg = img;
+
+                    if (this.previewActive) {
+                        this.previewContext.putImageData(this.previewImg, 0, 0);
+
+                        this.drawPreviewHoverArea();
+                    }
+
+                    createImageBitmap(img).then(((imgBitmap) => {
+                        this.mapContext.drawImage(imgBitmap, 0, 0, this.mapCanvas.width, this.mapCanvas.height);
+                        this.mapImg = this.mapContext.getImageData(0, 0, this.mapCanvas.width, this.mapCanvas.height);
+
+                        this.drawMapHoverArea();
+                    }).bind(this));
+
+                    this.drawMapHoverArea();
+
+                    if (!this.visWorker.working && !this.mapWorker.working) {
+                        $(this.visCanvas).parent().removeClass('loading');
+                        $(this.mapCanvas).parent().removeClass('loading');
+                    }
+                }
+            }, this);
+
+            if (!this.visCanvas) {
+                return;
+            }
+            
+            $(this.visCanvas).parent().toggleClass('loading', true);
 
             this.visWorker.work(this.visMagnif, this.visCenterX, this.visCenterY, this.visCanvas.width << 1, this.visCanvas.height << 1, (e) => {
                 if (e.data.final === false && typeof e.data.partStartY !== 'undefined' && typeof e.data.partHeight !== 'undefined') {
                     // console.log('Received partial render result', e.data.partStartY, 'height', e.data.partHeight);
 
                     let imgPart = e.data.img;
+
+                    let tempCanvas = new OffscreenCanvas(e.data.width, e.data.height);
+                    let tempContext = tempCanvas.getContext('2d');
+
+                    if (this.visImg) {
+                        tempContext.putImageData(this.visImg, 0, 0);
+                    }
+
+                    tempContext.putImageData(
+                        imgPart,
+                        0,
+                        e.data.partStartY,
+                        0,
+                        0,
+                        e.data.width,
+                        e.data.partHeight
+                    );
+
+                    this.visImg = tempContext.getImageData(0, 0, e.data.width, e.data.height);
+
+                    tempCanvas = null;
+                    tempContext = null;
 
                     this.visContext.putImageData(
                         imgPart,
@@ -346,8 +521,6 @@
 
                     this.visImgOffsetX = 0;
                     this.visImgOffsetY = 0;
-
-                    this.drawHoverArea();
                     
                     if (!this.visWorker.working && !this.mapWorker.working) {
                         $(this.visCanvas).parent().removeClass('loading');
@@ -356,83 +529,6 @@
                 }
             }, this);
 
-            this.mapWorker.work(this.mapMagnif, this.mapCenterX, this.mapCenterY, this.previewCanvas.width, this.previewCanvas.height, (e) => {
-                if (e.data.final === false && typeof e.data.partStartY !== 'undefined' && typeof e.data.partHeight !== 'undefined') {
-                    // console.log('Received partial render result for Minimap & Preview', e.data);
-
-                    let imgPart = e.data.img;
-
-                    this.previewContext.putImageData(
-                        imgPart,
-                        0,
-                        e.data.partStartY,
-                        0,
-                        0,
-                        imgPart.width,
-                        e.data.partHeight
-                    );
-
-                    createImageBitmap(imgPart).then(((imgBitmap) => {
-                        this.mapContext.drawImage(
-                            imgBitmap,
-                            0, 0, imgBitmap.width, e.data.partHeight,
-                            0,
-                            e.data.partStartY / this.previewCanvas.height * this.mapCanvas.height,
-                            this.mapCanvas.width,
-                            e.data.partHeight / this.previewCanvas.height * this.mapCanvas.height
-                        );
-
-                        this.drawHoverArea();
-                    }).bind(this));
-
-                    this.previewContext.beginPath();
-                    this.previewContext.lineWidth = 1;
-                    this.previewContext.strokeStyle = 'rgba(0, 255, 0, 1)';
-                    this.previewContext.strokeRect(
-                        1,
-                        e.data.partStartY,
-                        this.previewCanvas.width - 2,
-                        e.data.partHeight
-                    );
-        
-                    this.mapContext.beginPath();
-                    this.mapContext.lineWidth = 1;
-                    this.mapContext.strokeStyle = 'rgba(0, 255, 0, 1)';
-                    this.mapContext.strokeRect(
-                        1,
-                        e.data.partStartY / this.previewCanvas.height * this.mapCanvas.height,
-                        this.mapCanvas.width - 2,
-                        e.data.partHeight / this.previewCanvas.height * this.mapCanvas.height
-                    );
-
-                    this.drawHoverArea();
-
-                    if (this.visWorker.working || this.mapWorker.working) {
-                        $(this.visCanvas).parent().toggleClass('loading', true);
-                        $(this.mapCanvas).parent().toggleClass('loading', true);
-                    }
-                }
-
-                if (e.data.final) {
-                    let img = e.data.img;
-                    
-                    this.previewImg = img;                
-
-                    createImageBitmap(img).then(((imgBitmap) => {
-                        this.mapContext.drawImage(imgBitmap, 0, 0, this.mapCanvas.width, this.mapCanvas.height);
-                        this.mapImg = this.mapContext.getImageData(0, 0, this.mapCanvas.width, this.mapCanvas.height);
-
-                        this.drawHoverArea();
-                    }).bind(this));
-
-                    this.drawHoverArea();
-
-                    if (!this.visWorker.working && !this.mapWorker.working) {
-                        $(this.visCanvas).parent().removeClass('loading');
-                        $(this.mapCanvas).parent().removeClass('loading');
-                    }
-                }
-            }, this);
         }
     }
 
@@ -504,15 +600,18 @@
 
                 let currentPair = new MapVisualPair;
                 
-                currentPair.visMagnif = Math.round(currentMapMagnif * nextMapCanvas.width / this.minStrokeW);
+                currentPair.visMagnif = Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW);
                 currentPair.visCenterX = hoverX;
                 currentPair.visCenterY = hoverY;
+
+                currentPair.visCanvasWidth = previewCanvas.width;
+                currentPair.visCanvasHeight = previewCanvas.height;
             
                 currentPair.mapMagnif = Math.round(currentMapMagnif);
                 currentPair.mapCenterX = this.pairs.length ? hoverX : 0;
                 currentPair.mapCenterY = this.pairs.length ? hoverY : 0;
             
-                currentPair.init(nextMapCanvas, lastMapCanvas, this.previewCanvas);
+                currentPair.init(lastMapCanvas, this.previewCanvas);
 
                 this.pairs.push(currentPair);
 
@@ -529,11 +628,14 @@
             this.pairMain.visCenterX = hoverX;
             this.pairMain.visCenterY = hoverY;
 
+            this.pairMain.visCanvasWidth = previewCanvas.width;
+            this.pairMain.visCanvasHeight = previewCanvas.height;
+
             this.pairMain.mapMagnif = currentMapMagnif;
             this.pairMain.mapCenterX = hoverX;
             this.pairMain.mapCenterY = hoverY;
-            
-            this.pairMain.init(this.visCanvas, lastMapCanvas, this.previewCanvas);
+
+            this.pairMain.init(lastMapCanvas, this.previewCanvas, this.visCanvas);
 
             this.pairs.push(this.pairMain);
             
@@ -566,7 +668,7 @@
                 this.dragStartY = this.dragCurrentMouseY = e.offsetY;
     
                 this.dragGlobalID = window.requestAnimationFrame(this.pairMainStepDrag.bind(this));
-                console.log('dragging start');    
+                console.log('dragging start');
             }
         }
 
@@ -606,7 +708,7 @@
                 this.pairMain.mapCanvas.height - this.pairMain.mapImg.height >> 1
             );
     
-            this.pairMain.drawHoverArea(- offsetX / this.pairMain.visMagnif, offsetY / this.pairMain.visMagnif);
+            this.pairMain.drawMapHoverArea(- offsetX / this.pairMain.visMagnif, offsetY / this.pairMain.visMagnif);
     
             this.pairMain.visImgOffsetX += offsetX;
             this.pairMain.visImgOffsetY += offsetY;
@@ -671,7 +773,7 @@
                     this.pairMain.mapCanvas.height - this.pairMain.mapImg.height >> 1
                 );
     
-                this.pairMain.drawHoverArea(- offsetX / this.pairMain.visMagnif, offsetY / this.pairMain.visMagnif);
+                this.pairMain.drawMapHoverArea(- offsetX / this.pairMain.visMagnif, offsetY / this.pairMain.visMagnif);
             }
     
             this.dragGlobalID = window.requestAnimationFrame(this.pairMainStepDrag.bind(this));
@@ -751,15 +853,18 @@
     
                     let currentPair = new MapVisualPair;
                     
-                    currentPair.visMagnif = Math.round(currentMapMagnif * nextMapCanvas.width / this.minStrokeW);
-                    currentPair.visCenterX = this.pairMain.visCenterX;
-                    currentPair.visCenterY = this.pairMain.visCenterY;
+                    currentPair.visMagnif = Math.round(currentMapMagnif * this.visCanvas.width / this.minStrokeW);
+                    currentPair.visCenterX = hoverX;
+                    currentPair.visCenterY = hoverY;
+    
+                    currentPair.visCanvasWidth = previewCanvas.width;
+                    currentPair.visCanvasHeight = previewCanvas.height;
                 
                     currentPair.mapMagnif = Math.round(currentMapMagnif);
                     currentPair.mapCenterX = this.pairs.length ? this.pairMain.visCenterX : 0;
                     currentPair.mapCenterY = this.pairs.length ? this.pairMain.visCenterY : 0;
                 
-                    currentPair.init(nextMapCanvas, lastMapCanvas, this.previewCanvas);
+                    currentPair.init(lastMapCanvas, this.previewCanvas);
     
                     this.pairs.push(currentPair);
     
@@ -773,7 +878,7 @@
 
                 this.pairMain.mapMagnif = currentMapMagnif;
     
-                this.pairMain.init(this.visCanvas, lastMapCanvas, this.previewCanvas);
+                this.pairMain.init(lastMapCanvas, this.previewCanvas, this.visCanvas);
                 
                 for (let i = startingMapIndex; i < this.pairs.length; i++) {
                     console.log('Applied moveTo() on', i, this.pairs[i]);
@@ -866,7 +971,7 @@
                     this.pairMain.visImg.height * this.wheelCurrentRatio
                 );
     
-                this.pairMain.drawHoverArea();
+                this.pairMain.drawMapHoverArea();
             }).bind(this));
     
             this.wheelGlobalID = window.requestAnimationFrame(this.pairMainStepWheel.bind(this));
@@ -886,11 +991,19 @@
             this.noPreviewEffectsText = null;
 
             this.scrollbarInstance = null;
+
+            this.zooming = false;
+            this.zoomingDestID = null;
+            this.zoomingDelta = null;
+            this.zoomingCurrentStep = null;
+            this.zoomGlobalID = null;
         }
 
         init() {
             if (!this.controlsInit) {
                 this.controlsInit = true;
+
+                $('[data-toggle="tooltip"]').tooltip();
 
                 // General page
                 
@@ -915,6 +1028,16 @@
 
                     $(this.minimapManager.mapsContainer).find('canvas').css('width', mapWidth + 'px');
                     $(this.minimapManager.mapsContainer).find('canvas').css('height', mapHeight + 'px');
+
+                    for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                        const element = this.minimapManager.pairs[i];
+                        element.destroy();
+                    }
+
+                    this.minimapManager.pairs = [];
+                    this.minimapManager.pairMain = null;
+                    
+                    this.minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
                 }).val(mapWidth);
 
                 $('#inputVisualAreaWidth').change((e) => {
@@ -926,7 +1049,15 @@
                     previewCanvas.width = screenWidth;
                     previewCanvas.height = screenHeight;
 
-                    this.minimapManager.pairMain.moveTo();
+                    for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                        const element = this.minimapManager.pairs[i];
+                        element.destroy();
+                    }
+
+                    this.minimapManager.pairs = [];
+                    this.minimapManager.pairMain = null;
+                    
+                    this.minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
                 }).val(screenWidth);
 
                 $('#inputVisualAreaHeight').change((e) => {
@@ -938,7 +1069,15 @@
                     previewCanvas.width = screenWidth;
                     previewCanvas.height = screenHeight;
 
-                    this.minimapManager.pairMain.moveTo();
+                    for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                        const element = this.minimapManager.pairs[i];
+                        element.destroy();
+                    }
+
+                    this.minimapManager.pairs = [];
+                    this.minimapManager.pairMain = null;
+                    
+                    this.minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
                 }).val(screenHeight);
 
                 // Effects page
@@ -987,18 +1126,247 @@
 
                 $('#fadePreviewActivator').click((e) => {
                     $('#previewEffectsDropdownBtn').html($('#fadePreviewActivator').html());
+
+                    for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                        const pair = this.minimapManager.pairs[i];
+                        pair.mouseOverCallback = this.fadeMouseOver;
+                        pair.mouseOverCallbackThis = this;
+                        pair.mouseOutCallback = this.fadeMouseOut;
+                        pair.mouseOutCallbackThis = this;
+                    }
                 });
 
                 $('#zoomPreviewActivator').click((e) => {
                     $('#previewEffectsDropdownBtn').html($('#zoomPreviewActivator').html());
+
+                    for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                        const pair = this.minimapManager.pairs[i];
+                        pair.mouseOverCallback = this.zoomMouseOver;
+                        pair.mouseOverCallbackThis = this;
+                        pair.mouseOutCallback = this.zoomMouseOut;
+                        pair.mouseOutCallbackThis = this;
+                    }
                 });
 
                 $('#clearPreviewEffectsActivator').click((e) => {
                     $('#previewEffectsDropdownBtn').html(this.noPreviewEffectsText);
+
+                    for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                        const pair = this.minimapManager.pairs[i];
+                        pair.mouseOverCallback = null;
+                        pair.mouseOverCallbackThis = null;
+                        pair.mouseOutCallback = null;
+                        pair.mouseOutCallbackThis = null;
+                    }
                 });
 
                 // Algorithms page
 
+            }
+        }
+
+        fadeMouseOver(e, currentPair) {
+            if ($(currentPair.previewCanvas).is(':visible')) {
+                $(currentPair.previewCanvas).stop().fadeOut(400, (e) => {
+                    if (currentPair.previewImg) {
+                        currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
+                    }
+
+                    currentPair.drawPreviewHoverArea();
+
+                    $(currentPair.previewCanvas).fadeIn();
+                });
+            } else {
+                if (currentPair.previewImg) {
+                    currentPair.previewContext.putImageData(currentPair.previewImg, 0, 0);
+                }
+
+                currentPair.drawPreviewHoverArea();
+
+                $(currentPair.previewCanvas).fadeIn();
+            }
+        }
+
+        fadeMouseOut(e, currentPair) {
+            $(currentPair.previewCanvas).stop().fadeOut();
+        }
+
+        zoomMouseOver(e, currentPair) {
+            console.log('zoom mouseOver');
+
+            let destID = null;
+
+            for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                const pair = this.minimapManager.pairs[i];
+
+                console.log('checking', i, 'pair info', pair);
+                
+                if (pair.previewActive) {
+                    destID = i;
+                    break;
+                }
+            }
+
+            if (destID !== null) {
+
+                this.zoomingDestID = destID;
+
+                if (!this.zoomingCurrentStep) {
+                    this.zoomingCurrentStep = this.minimapManager.pairs.length;
+                }
+
+                this.zooming = true;
+        
+                if (!this.zoomGlobalID) {
+                    this.zoomGlobalID = window.requestAnimationFrame(this.zoomStep.bind(this));
+                    console.log('zooming start, dest id', destID);
+                }
+
+            }
+        }
+
+        zoomStep(timestamp) {
+            if (this.zooming) {
+
+                console.log('before adding', 'this.zoomingDestID', this.zoomingDestID, 'this.zoomingCurrentStep', this.zoomingCurrentStep);
+
+                if (!$(this.minimapManager.previewCanvas).is(':visible')) {
+                    $(this.minimapManager.previewCanvas).show(0);
+                }
+
+                if (this.zoomingDestID < this.zoomingCurrentStep) {
+                    this.zoomingCurrentStep -= 0.01;
+
+                    if (this.zoomingCurrentStep <= this.zoomingDestID) {
+                        this.zooming = false;
+                        this.zoomingCurrentStep = this.zoomingDestID;
+                    }
+                } else {
+                    if (this.zoomingDestID > this.zoomingCurrentStep) {
+                        this.zoomingCurrentStep += 0.01;
+    
+                        if (this.zoomingCurrentStep >= this.zoomingDestID) {
+                            this.zooming = false;
+                            this.zoomingCurrentStep = this.zoomingDestID;
+                        }
+                    } else {
+                        this.zooming = false;
+
+                        
+                        if (this.zoomingDestID >= this.minimapManager.pairs.length) {
+                            console.log('Reached upper zoom cancel');
+                            console.log(this.minimapManager.pairs);
+
+                            window.cancelAnimationFrame(this.zoomGlobalID);
+                            this.zoomGlobalID = null;
+                            
+                            this.zoomingDestID = null;
+                            this.zoomingCurrentStep = null;
+
+                            $(this.minimapManager.previewCanvas).hide(0);
+                        }
+                    }
+                }
+    
+                // TODO: Paint
+
+                let previewContext = this.minimapManager.previewCanvas.getContext('2d');
+
+                if (this.zoomingCurrentStep >= this.minimapManager.pairs.length - 1) {
+
+                    let largeImg = this.minimapManager.pairs[this.minimapManager.pairs.length - 1].previewImg;
+                    let smallImg = this.minimapManager.pairs[this.minimapManager.pairs.length - 1].visImg;
+
+                    createImageBitmap(largeImg).then(((imgBitmapLarge) => {           
+                        createImageBitmap(smallImg).then(((imgBitmapSmall) => {
+                            // previewContext.drawImage(
+                            //     imgBitmapLarge,
+                            //     this.pairMain.visCanvas.width - this.wheelCurrentRatio * this.pairMain.visImg.width >> 1,
+                            //     this.pairMain.visCanvas.height - this.wheelCurrentRatio * this.pairMain.visImg.height >> 1,
+                            //     this.pairMain.visImg.width * this.wheelCurrentRatio,
+                            //     this.pairMain.visImg.height * this.wheelCurrentRatio
+                            // );
+
+                            // previewContext.drawImage(
+                            //     imgBitmapSmall,
+                            //     this.minimapManager.previewCanvas.width - this.wheelCurrentRatio * this.pairMain.visImg.width >> 1,
+                            //     this.minimapManager.previewCanvas.height - this.wheelCurrentRatio * this.pairMain.visImg.height >> 1,
+                            //     this.pairMain.visImg.width * this.wheelCurrentRatio,
+                            //     this.pairMain.visImg.height * this.wheelCurrentRatio
+                            // );
+                        }).bind(this));
+                    }).bind(this));
+                } else {
+                    let largePair = this.minimapManager.pairs[Math.floor(this.zoomingCurrentStep)];
+                    let smallPair = this.minimapManager.pairs[Math.floor(this.zoomingCurrentStep) + 1];
+
+                    let largeImg = largePair.previewImg;
+                    let smallImg = smallPair.previewImg;
+
+                    let percent = this.zoomingCurrentStep - Math.floor(this.zoomingCurrentStep);
+                    let ultResult = largePair.mapMagnif + (smallPair.mapMagnif - largePair.mapMagnif) * percent;
+
+                    createImageBitmap(largeImg).then(((imgBitmapLarge) => {            
+                        createImageBitmap(smallImg).then(((imgBitmapSmall) => {
+                            previewContext.drawImage(
+                                imgBitmapLarge,
+                                this.minimapManager.previewCanvas.width - largePair.previewImg.width * ultResult / largePair.mapMagnif >> 1,
+                                this.minimapManager.previewCanvas.height - largePair.previewImg.height * ultResult / largePair.mapMagnif >> 1,
+                                largePair.previewImg.width * ultResult / largePair.mapMagnif,
+                                largePair.previewImg.height * ultResult / largePair.mapMagnif
+                            );
+
+                            previewContext.drawImage(
+                                imgBitmapSmall,
+                                this.minimapManager.previewCanvas.width - smallPair.previewImg.width * ultResult / smallPair.mapMagnif >> 1,
+                                this.minimapManager.previewCanvas.height - smallPair.previewImg.height * ultResult / smallPair.mapMagnif >> 1,
+                                smallPair.previewImg.width * ultResult / smallPair.mapMagnif,
+                                smallPair.previewImg.height * ultResult / smallPair.mapMagnif
+                            );
+
+                            previewContext.beginPath();
+                            previewContext.lineWidth = 1;
+                            previewContext.strokeStyle = 'rgba(123, 31, 187, 1)';
+                            previewContext.strokeRect(
+                                this.minimapManager.previewCanvas.width - smallPair.previewImg.width * ultResult / smallPair.mapMagnif >> 1,
+                                this.minimapManager.previewCanvas.height - smallPair.previewImg.height * ultResult / smallPair.mapMagnif >> 1,
+                                smallPair.previewImg.width * ultResult / smallPair.mapMagnif,
+                                smallPair.previewImg.height * ultResult / smallPair.mapMagnif
+                            );
+                        }).bind(this));
+                    }).bind(this));
+                }
+
+                console.log('after //paint', 'this.zoomingDestID', this.zoomingDestID, 'this.zoomingCurrentStep', this.zoomingCurrentStep);
+            }
+
+            if (this.zoomingDestID === this.zoomingCurrentStep && this.zoomingDestID >= this.minimapManager.pairs.length) {
+                console.log('Reached lower zoom cancel');
+                console.log(this.minimapManager.pairs);
+
+                window.cancelAnimationFrame(this.zoomGlobalID);
+                this.zoomGlobalID = null;
+                
+                this.zoomingDestID = null;
+                this.zoomingCurrentStep = null;
+
+                $(this.minimapManager.previewCanvas).hide(0);
+            } else {
+                this.zoomGlobalID = window.requestAnimationFrame(this.zoomStep.bind(this));
+            }
+        }
+
+        zoomMouseOut(e, currentPair) {
+            console.log('zoom mouseOut', e, currentPair);
+
+            if (!this.zoomGlobalID) {
+                return;
+            }
+
+            this.zoomingDestID = this.minimapManager.pairs.length;
+
+            if (!this.zooming) {
+                this.zooming = true;
             }
         }
 
@@ -1166,6 +1534,8 @@
                 $(pair.mapCanvas).css('position', '');
                 $(pair.mapCanvas).css('left', '');
                 $(pair.mapCanvas).css('margin-left', '');
+                
+                $(pair.mapCanvas).tooltip('dispose');
             }
         }
 
@@ -1190,6 +1560,11 @@
                     $(pair.mapCanvas).css('position', '');
                     $(pair.mapCanvas).css('left', '');
                     $(pair.mapCanvas).css('margin-left', '');
+                    
+                    $(pair.mapCanvas).tooltip('dispose').tooltip({
+                        placement: 'bottom',
+                        title: $(pair.mapCanvas).parent().find('span').html(),
+                    });
                 }
             } else {
                 for (let i = 0, len = this.minimapManager.pairs.length; i < len; i++) {
@@ -1201,6 +1576,11 @@
                     $(pair.mapCanvas).css('position', 'absolute');
                     $(pair.mapCanvas).css('left', '50%');
                     $(pair.mapCanvas).css('margin-left', - (mapWidth + 2 >> 1) + 'px');
+                    
+                    $(pair.mapCanvas).tooltip('dispose').tooltip({
+                        placement: 'bottom',
+                        title: $(pair.mapCanvas).parent().find('span').html(),
+                    });
                 }
             }
         }

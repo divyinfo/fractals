@@ -26,7 +26,13 @@ onmessage = function (e) {
 
     let ts = performance.now();
     
-    let workerResult = getMandelCounts(e.data.magnif, e.data.centerX, e.data.centerY, e.data.width, e.data.height);
+    let workerResult = null;
+    
+    if (e.data.magnif > 1000000000000000) {
+        workerResult = getMandelCountsHighPrecision(e.data.magnif, e.data.centerX, e.data.centerY, e.data.width, e.data.height);
+    } else {
+        workerResult = getMandelCounts(e.data.magnif, e.data.centerX, e.data.centerY, e.data.width, e.data.height);
+    }
 
     let t = performance.now() - ts;
 
@@ -217,6 +223,20 @@ function getMandelCountsHighPrecision(magnif, centerX, centerY, width, height, m
         let realX = (new Decimal(centerX)).sub(realWHalf);
 
         if (performance.now() - lastTS > 500 && countY > 0) {
+            // console.log({
+            //     final: false,
+            //     img: imgShort, 
+            //     min: currentMinIterations,
+            //     max: currentMaxIterations,
+            //     magnif: magnif,
+            //     centerX: centerX,
+            //     centerY: centerY,
+            //     width: width,
+            //     height: height,
+            //     partStartY: y - countY,
+            //     partHeight: countY,
+            // });
+
             postMessage({
                 final: false,
                 img: imgShort, 
