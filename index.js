@@ -1274,26 +1274,41 @@
 
                 if (this.zoomingCurrentStep >= this.minimapManager.pairs.length - 1) {
 
+                    let pair = this.minimapManager.pairs[this.minimapManager.pairs.length - 1];
+
                     let largeImg = this.minimapManager.pairs[this.minimapManager.pairs.length - 1].previewImg;
                     let smallImg = this.minimapManager.pairs[this.minimapManager.pairs.length - 1].visImg;
 
+                    let percent = this.zoomingCurrentStep - Math.floor(this.zoomingCurrentStep);
+                    let ultResult = pair.mapMagnif + (pair.visMagnif - pair.mapMagnif) * percent;
+
                     createImageBitmap(largeImg).then(((imgBitmapLarge) => {           
                         createImageBitmap(smallImg).then(((imgBitmapSmall) => {
-                            // previewContext.drawImage(
-                            //     imgBitmapLarge,
-                            //     this.pairMain.visCanvas.width - this.wheelCurrentRatio * this.pairMain.visImg.width >> 1,
-                            //     this.pairMain.visCanvas.height - this.wheelCurrentRatio * this.pairMain.visImg.height >> 1,
-                            //     this.pairMain.visImg.width * this.wheelCurrentRatio,
-                            //     this.pairMain.visImg.height * this.wheelCurrentRatio
-                            // );
+                            previewContext.drawImage(
+                                imgBitmapLarge,
+                                this.minimapManager.previewCanvas.width - pair.previewImg.width * ultResult / pair.mapMagnif >> 1,
+                                this.minimapManager.previewCanvas.height - pair.previewImg.height * ultResult / pair.mapMagnif >> 1,
+                                pair.previewImg.width * ultResult / pair.mapMagnif,
+                                pair.previewImg.height * ultResult / pair.mapMagnif
+                            );
 
-                            // previewContext.drawImage(
-                            //     imgBitmapSmall,
-                            //     this.minimapManager.previewCanvas.width - this.wheelCurrentRatio * this.pairMain.visImg.width >> 1,
-                            //     this.minimapManager.previewCanvas.height - this.wheelCurrentRatio * this.pairMain.visImg.height >> 1,
-                            //     this.pairMain.visImg.width * this.wheelCurrentRatio,
-                            //     this.pairMain.visImg.height * this.wheelCurrentRatio
-                            // );
+                            previewContext.drawImage(
+                                imgBitmapSmall,
+                                this.minimapManager.previewCanvas.width - pair.visImg.width * ultResult / pair.visMagnif >> 1,
+                                this.minimapManager.previewCanvas.height - pair.visImg.height * ultResult / pair.visMagnif >> 1,
+                                pair.visImg.width * ultResult / pair.visMagnif,
+                                pair.visImg.height * ultResult / pair.visMagnif
+                            );
+
+                            previewContext.beginPath();
+                            previewContext.lineWidth = 1;
+                            previewContext.strokeStyle = 'rgba(31, 123, 187, 3)';
+                            previewContext.strokeRect(
+                                this.minimapManager.previewCanvas.width - pair.previewImg.width * ultResult / pair.visMagnif >> 1,
+                                this.minimapManager.previewCanvas.height - pair.previewImg.height * ultResult / pair.visMagnif >> 1,
+                                pair.previewImg.width * ultResult / pair.visMagnif,
+                                pair.previewImg.height * ultResult / pair.visMagnif
+                            );
                         }).bind(this));
                     }).bind(this));
                 } else {
