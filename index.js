@@ -957,7 +957,7 @@
                         this.pairMain.visMagnif = this.visMagnif;
                         this.pairMain.mapMagnif = currentMapMagnif;
     
-                        this.pairMain.init(this.visCanvas, this.pairs[i].mapCanvas, this.previewCanvas);
+                        this.pairMain.init(this.pairs[i].mapCanvas, this.previewCanvas, this.visCanvas);
 
                         for (let r = i + 1, len = this.pairs.length; r < len; r++) {
                             this.pairs[r].destroy();
