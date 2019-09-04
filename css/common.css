@@ -127,3 +127,19 @@ body {
     top: 0;
     right: 0;
 }
+
+#maps-container .li.zoom-current.shadow:not(.loading),
+#maps-container .li.zoom-current:last-child:not(.loading),
+#maps-container .li.zoom-current {
+    z-index: 400;
+}
+
+#maps-container .li.zoom-current.shadow:not(.loading) canvas,
+#maps-container .li.zoom-current:last-child:not(.loading) canvas,
+#maps-container .li.zoom-current canvas {
+    -moz-box-shadow: 0 0 4em 2em rgba(76, 159, 226, 0.836) !important;
+    -webkit-box-shadow: 0 0 4em 2em rgba(76, 159, 226, 0.836) !important;
+    box-shadow: 0 0 4em 2em rgba(76, 159, 226, 0.836) !important;
+
+    z-index: 600;
+}

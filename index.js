@@ -182,7 +182,12 @@
                         }
 
                     }
-    
+
+                    li.closest('#maps-container').find('.li').css('min-width', '');
+
+                    if (li.closest('#maps-container').hasClass('tabs')) {
+                        li.css('min-width', mapWidth + 'px');
+                    }
                 });
     
                 $(mapCanvas).mouseout(function (e) {
@@ -214,6 +219,8 @@
                         }
 
                     }
+
+                    li.closest('#maps-container').find('.li').css('min-width', '');
                 });
             }
         }
@@ -662,6 +669,18 @@
             if (e.which != 1) {
                 return;
             }
+
+            let em = this.effectManager;
+
+            if (!em && typeof effectManager !== 'undefined') {
+                em = effectManager;
+            }
+
+            if (em) {
+                if (em.zooming || em.zoomGlobalID) {
+                    return;
+                }
+            }
     
             if (!this.dragGlobalID && this.pairMain.visImg) {
                 this.dragStartX = this.dragCurrentMouseX = e.offsetX;
@@ -686,6 +705,18 @@
 
             if (!this.dragGlobalID) {
                 return;
+            }
+
+            let em = this.effectManager;
+
+            if (!em && typeof effectManager !== 'undefined') {
+                em = effectManager;
+            }
+
+            if (em) {
+                if (em.zooming || em.zoomGlobalID) {
+                    return;
+                }
             }
     
             window.cancelAnimationFrame(this.dragGlobalID);
@@ -790,6 +821,18 @@
         }
 
         pairMainWheel(e) {
+            let em = this.effectManager;
+
+            if (!em && typeof effectManager !== 'undefined') {
+                em = effectManager;
+            }
+
+            if (em) {
+                if (em.zooming || em.zoomGlobalID) {
+                    return;
+                }
+            }
+
             if (this.wheelTimeoutGlobalID === null) {
                 this.wheelCurrentRatio = 1;
                 this.wheelStartMagnif = this.pairMain.visMagnif;
@@ -962,17 +1005,19 @@
             
             // console.log('Wheeling current magnif', this.pairMain.visMagnif);
 
-            createImageBitmap(this.pairMain.visImg).then(((imgBitmap) => {
-                this.pairMain.visContext.drawImage(
-                    imgBitmap,
-                    this.pairMain.visCanvas.width - this.wheelCurrentRatio * this.pairMain.visImg.width >> 1,
-                    this.pairMain.visCanvas.height - this.wheelCurrentRatio * this.pairMain.visImg.height >> 1,
-                    this.pairMain.visImg.width * this.wheelCurrentRatio,
-                    this.pairMain.visImg.height * this.wheelCurrentRatio
-                );
-    
-                this.pairMain.drawMapHoverArea();
-            }).bind(this));
+            if (this.pairMain.visImg) {
+                createImageBitmap(this.pairMain.visImg).then(((imgBitmap) => {
+                    this.pairMain.visContext.drawImage(
+                        imgBitmap,
+                        this.pairMain.visCanvas.width - this.wheelCurrentRatio * this.pairMain.visImg.width >> 1,
+                        this.pairMain.visCanvas.height - this.wheelCurrentRatio * this.pairMain.visImg.height >> 1,
+                        this.pairMain.visImg.width * this.wheelCurrentRatio,
+                        this.pairMain.visImg.height * this.wheelCurrentRatio
+                    );
+        
+                    this.pairMain.drawMapHoverArea();
+                }).bind(this));
+            }
     
             this.wheelGlobalID = window.requestAnimationFrame(this.pairMainStepWheel.bind(this));
         }
@@ -1038,6 +1083,8 @@
                     this.minimapManager.pairMain = null;
                     
                     this.minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
+
+                    this.update();
                 }).val(mapWidth);
 
                 $('#inputVisualAreaWidth').change((e) => {
@@ -1058,6 +1105,8 @@
                     this.minimapManager.pairMain = null;
                     
                     this.minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
+
+                    this.update();
                 }).val(screenWidth);
 
                 $('#inputVisualAreaHeight').change((e) => {
@@ -1078,6 +1127,8 @@
                     this.minimapManager.pairMain = null;
                     
                     this.minimapManager.initMaps(mainCanvas, previewCanvas, $('#maps-container'), $('#visual-container'), hoverX, hoverY);
+
+                    this.update();
                 }).val(screenHeight);
 
                 // Effects page
@@ -1125,6 +1176,14 @@
                 this.noPreviewEffectsText = $('#previewEffectsDropdownBtn').html();
 
                 $('#fadePreviewActivator').click((e) => {
+                    if (this.zooming || this.zoomingDestID) {
+                        return;
+                    }
+
+                    this.destroyPreview();
+
+                    this.currentPreviewEffect = 'fade';
+                    
                     $('#previewEffectsDropdownBtn').html($('#fadePreviewActivator').html());
 
                     for (let i = 0; i < this.minimapManager.pairs.length; i++) {
@@ -1137,6 +1196,14 @@
                 });
 
                 $('#zoomPreviewActivator').click((e) => {
+                    if (this.zooming || this.zoomingDestID) {
+                        return;
+                    }
+
+                    this.destroyPreview();
+
+                    this.currentPreviewEffect = 'zoom';
+
                     $('#previewEffectsDropdownBtn').html($('#zoomPreviewActivator').html());
 
                     for (let i = 0; i < this.minimapManager.pairs.length; i++) {
@@ -1149,15 +1216,15 @@
                 });
 
                 $('#clearPreviewEffectsActivator').click((e) => {
+                    if (this.zooming || this.zoomingDestID) {
+                        return;
+                    }
+
+                    this.currentPreviewEffect = null;
+
                     $('#previewEffectsDropdownBtn').html(this.noPreviewEffectsText);
 
-                    for (let i = 0; i < this.minimapManager.pairs.length; i++) {
-                        const pair = this.minimapManager.pairs[i];
-                        pair.mouseOverCallback = null;
-                        pair.mouseOverCallbackThis = null;
-                        pair.mouseOutCallback = null;
-                        pair.mouseOutCallbackThis = null;
-                    }
+                    this.destroyPreview();
                 });
 
                 // Algorithms page
@@ -1228,7 +1295,7 @@
         zoomStep(timestamp) {
             if (this.zooming) {
 
-                console.log('before adding', 'this.zoomingDestID', this.zoomingDestID, 'this.zoomingCurrentStep', this.zoomingCurrentStep);
+                // console.log('before adding', 'this.zoomingDestID', this.zoomingDestID, 'this.zoomingCurrentStep', this.zoomingCurrentStep);
 
                 if (!$(this.minimapManager.previewCanvas).is(':visible')) {
                     $(this.minimapManager.previewCanvas).show(0);
@@ -1264,6 +1331,8 @@
                             this.zoomingCurrentStep = null;
 
                             $(this.minimapManager.previewCanvas).hide(0);
+
+                            $(this.minimapManager.mapsContainer).find('.li').removeClass('zoom-current');
                         }
                     }
                 }
@@ -1311,6 +1380,9 @@
                             );
                         }).bind(this));
                     }).bind(this));
+
+                    $(this.minimapManager.mapsContainer).find('.li').removeClass('zoom-current');
+                    $(this.minimapManager.pairs[this.minimapManager.pairs.length - 1].mapCanvas).parent().toggleClass('zoom-current', true);
                 } else {
                     let largePair = this.minimapManager.pairs[Math.floor(this.zoomingCurrentStep)];
                     let smallPair = this.minimapManager.pairs[Math.floor(this.zoomingCurrentStep) + 1];
@@ -1350,9 +1422,12 @@
                             );
                         }).bind(this));
                     }).bind(this));
+
+                    $(this.minimapManager.mapsContainer).find('.li').removeClass('zoom-current');
+                    $(this.minimapManager.pairs[Math.floor(this.zoomingCurrentStep)].mapCanvas).parent().toggleClass('zoom-current', true);
                 }
 
-                console.log('after //paint', 'this.zoomingDestID', this.zoomingDestID, 'this.zoomingCurrentStep', this.zoomingCurrentStep);
+                // console.log('after //paint', 'this.zoomingDestID', this.zoomingDestID, 'this.zoomingCurrentStep', this.zoomingCurrentStep);
             }
 
             if (this.zoomingDestID === this.zoomingCurrentStep && this.zoomingDestID >= this.minimapManager.pairs.length) {
@@ -1366,6 +1441,8 @@
                 this.zoomingCurrentStep = null;
 
                 $(this.minimapManager.previewCanvas).hide(0);
+                
+                $(this.minimapManager.mapsContainer).find('.li').removeClass('zoom-current');
             } else {
                 this.zoomGlobalID = window.requestAnimationFrame(this.zoomStep.bind(this));
             }
@@ -1385,10 +1462,59 @@
             }
         }
 
+        updatePreview() {
+            if (this.currentPreviewEffect === 'fade') {
+                this.updateFadePreview();
+            }
+
+            if (this.currentPreviewEffect === 'zoom') {
+                this.updateZoomPreview();
+            }
+
+            if (!this.currentPreviewEffect) {
+                this.destroyPreview();
+            }
+        }
+
+        updateFadePreview() {
+            for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                const pair = this.minimapManager.pairs[i];
+                pair.mouseOverCallback = this.fadeMouseOver;
+                pair.mouseOverCallbackThis = this;
+                pair.mouseOutCallback = this.fadeMouseOut;
+                pair.mouseOutCallbackThis = this;
+            }
+        }
+
+        updateZoomPreview() {
+            for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                const pair = this.minimapManager.pairs[i];
+                pair.mouseOverCallback = this.zoomMouseOver;
+                pair.mouseOverCallbackThis = this;
+                pair.mouseOutCallback = this.zoomMouseOut;
+                pair.mouseOutCallbackThis = this;
+            }
+        }
+
+        destroyPreview() {
+            this.currentPreviewEffect = null;
+
+            for (let i = 0; i < this.minimapManager.pairs.length; i++) {
+                const pair = this.minimapManager.pairs[i];
+                pair.mouseOverCallback = null;
+                pair.mouseOverCallbackThis = null;
+                pair.mouseOutCallback = null;
+                pair.mouseOutCallbackThis = null;
+            }
+
+            $('#maps-container').find('li').removeClass('zoom-current');
+        }
+
         destroy() {
             this.destroyScrollbar();
             this.destroyStacked();
             this.destroyTabs();
+            this.destroyPreview();
         }
 
         update() {
@@ -1403,6 +1529,8 @@
             if (this.currentEffect === 'tabs') {
                 this.updateTabs();
             }
+
+            this.updatePreview();
         }
 
         initScrollbar() {
@@ -1416,7 +1544,7 @@
                 this.destroyScrollbar();
             }
 
-            // $(this.mapsContainer).css('max-height', screenHeight + 'px');
+            // $(this.minimapManager.mapsContainer).css('width', mapWidth + 22 + 'px');
             this.scrollbarInstance = new MiniBar($(this.minimapManager.mapsContainer)[0], {
                 scrollX: false,
                 scrollY: true,
@@ -1425,6 +1553,8 @@
                     this.scrollTo("end", "y");
                 }
             });
+
+            this.scrollbarInstance.scrollTo("end", "y");
 
             this.minimapManager.mapsContainer = $(this.minimapManager.mapsContainer).find('.mb-content').first();
 
@@ -1436,8 +1566,12 @@
         destroyScrollbar() {
             this.currentEffect = null;
 
+            console.log('pre destroy', this.scrollbarInstance);
+
             if (this.scrollbarInstance) {
                 this.scrollbarInstance.destroy();
+
+                console.log('destroy', this.scrollbarInstance);
 
                 this.scrollbarInstance = null;
                 this.minimapManager.mapsContainer = $('#maps-container');
@@ -1486,7 +1620,7 @@
                 return;
             }
 
-            let currentMapsBottom = this.minimapManager.pairs.length * (mapHeight + 2 + 10) + 10;
+            let currentMapsBottom = (this.minimapManager.pairs.length + 1) * (mapHeight + 2 + 10) + 10;
             let perMapHeight = Math.floor((screenHeight - 10 - mapHeight - 2 - 10 - 1) / (this.minimapManager.pairs.length - 1)) - 2;
             let avgMargin = perMapHeight - mapHeight - 2;
             let firstMargin = avgMargin - (10 - avgMargin);
@@ -1519,6 +1653,11 @@
 
                     // $(pair.mapCanvas).parent().css('perspective', (160 + i * 60 / this.minimapManager.pairs.length) + 'px');
                     $(pair.mapCanvas).css('transform', 'rotateX(' + (- 45 + i * 30 / this.minimapManager.pairs.length) + 'deg)');
+
+                    $(pair.mapCanvas).tooltip('dispose').tooltip({
+                        placement: 'right',
+                        title: $(pair.mapCanvas).parent().find('span').html(),
+                    });
                     
                 }
             }

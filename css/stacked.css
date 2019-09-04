@@ -42,7 +42,12 @@
     margin-bottom: 20px;
 }
 
-#maps-container.stacked .li:hover + .li.nearby {   
+#maps-container.stacked .li:hover + .li.nearby {
     margin-top: 30px;
     margin-bottom: 15px;
+}
+
+#maps-container.stacked .li:hover span {
+    display: none;
+    z-index: 600;
 }
