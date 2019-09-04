@@ -1228,8 +1228,53 @@
                 });
 
                 // Algorithms page
+                
+                // Info page
 
+                $('#btnGetInfo').click((e) => {
+                    this.getInfo($('#infoArea'));
+                });
             }
+        }
+
+        getInfo(el) {
+            let pMapsCount = $('<p />');
+
+            pMapsCount.html('<b>Maps Count:</b> ' + this.minimapManager.pairs.length);
+
+            let divMapsInfo = $('<div />');
+
+            this.minimapManager.pairs.forEach((pair, index) => {
+
+                let pMapInfo = $('<p />');
+
+                pMapInfo.append('<h5>' + 'Map ' + index + '</h5>');
+
+                pMapInfo.append('<span>' + '<b>Minimap Magnification:</b> ' + pair.mapMagnif + '</span>');
+                pMapInfo.append('<br/>');
+
+                pMapInfo.append('<span>' + '<b>Visual Magnification:</b> ' + pair.visMagnif + '</span>');
+                pMapInfo.append('<br/>');
+                
+                pMapInfo.append('<span>' + '<b>Map Center X:</b> ' + pair.mapCenterX + '</span>');
+                pMapInfo.append('<br/>');
+
+                pMapInfo.append('<span>' + '<b>Map Center Y:</b> ' + pair.mapCenterY + '</span>');
+                pMapInfo.append('<br/>');
+
+                pMapInfo.append('<span>' + '<b>Visual Center X:</b> ' + pair.visCenterX + '</span>');
+                pMapInfo.append('<br/>');
+
+                pMapInfo.append('<span>' + '<b>Visual Center Y:</b> ' + pair.visCenterY + '</span>');
+                pMapInfo.append('<br/>');
+
+                divMapsInfo.append(pMapInfo);
+            });
+
+            $(el).html('');
+
+            $(el).append(pMapsCount);
+            $(el).append(divMapsInfo);
         }
 
         fadeMouseOver(e, currentPair) {

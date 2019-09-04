@@ -122,14 +122,20 @@
                                     <div class="tab-pane fade" id="algorithms" role="tabpanel" aria-labelledby="algorithms-tab">
                                         <h5 class="card-title">Algorithms</h5>
                                         <p class="card-text">Settings related with algorithms, back end calculations, etc.</p>
+                                        <div class="form-group">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="customCheckForceHighPrecision">
+                                                <label class="custom-control-label" for="customCheckForceHighPrecision">Force High Precision</label>
+                                            </div>
+                                        </div>
                                         <!-- <a href="#" class="btn btn-primary">Button</a> -->
                                     </div>
-                                    <div class="tab-pane fade" id="info" role="tabpanel" aria-labelledby="info-tab">
+                                    <div class="tab-pane fade" id="info" role="tabpanel" aria-labelledby="info-tab" style="max-height: 730px; overflow-y: auto;">
                                         <h5 class="card-title">Info</h5>
                                         <p class="card-text">Information on visual area, overviews, etc.</p>
                                         <p class="card-text" id="infoArea">-</p>
                                         <p class="card-text">
-                                            <button class="btn btn-success">Refresh</button>
+                                            <button class="btn btn-success" id="btnGetInfo">Refresh</button>
                                         </p>
                                         <!-- <a href="#" class="btn btn-primary">Button</a> -->
                                     </div>
