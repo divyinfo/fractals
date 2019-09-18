@@ -615,8 +615,8 @@
                 currentPair.visCanvasHeight = previewCanvas.height;
             
                 currentPair.mapMagnif = Math.round(currentMapMagnif);
-                currentPair.mapCenterX = this.pairs.length ? hoverX : 0;
-                currentPair.mapCenterY = this.pairs.length ? hoverY : 0;
+                currentPair.mapCenterX = hoverX;
+                currentPair.mapCenterY = hoverY;
             
                 currentPair.init(lastMapCanvas, this.previewCanvas);
 
@@ -904,8 +904,8 @@
                     currentPair.visCanvasHeight = previewCanvas.height;
                 
                     currentPair.mapMagnif = Math.round(currentMapMagnif);
-                    currentPair.mapCenterX = this.pairs.length ? this.pairMain.visCenterX : 0;
-                    currentPair.mapCenterY = this.pairs.length ? this.pairMain.visCenterY : 0;
+                    currentPair.mapCenterX = this.pairMain.visCenterX;
+                    currentPair.mapCenterY = this.pairMain.visCenterY;
                 
                     currentPair.init(lastMapCanvas, this.previewCanvas);
     
@@ -1042,6 +1042,8 @@
             this.zoomingDelta = null;
             this.zoomingCurrentStep = null;
             this.zoomGlobalID = null;
+
+            this.arrowSelection = null;
         }
 
         init() {
@@ -1234,6 +1236,50 @@
                 $('#btnGetInfo').click((e) => {
                     this.getInfo($('#infoArea'));
                 });
+
+                // Keyboard bindings
+
+                $(document).keydown((e) => {
+                    console.log('Current arrowSelection', this.arrowSelection);
+
+                    // ArrowLeft
+                    if (e.keyCode === 37 || e.keyCode === 65) {
+                        if (this.arrowSelection === null) {
+                            this.arrowSelection = this.minimapManager.pairs.length - 1;
+
+                            $(this.minimapManager.pairs[this.arrowSelection].mapCanvas).trigger('mouseover');
+                        } else {
+                            if (this.arrowSelection <= 0) {
+                                this.arrowSelection = 0;
+                            } else {
+                                $(this.minimapManager.pairs[this.arrowSelection].mapCanvas).trigger('mouseout');
+
+                                this.arrowSelection --;
+
+                                $(this.minimapManager.pairs[this.arrowSelection].mapCanvas).trigger('mouseover');
+                            }
+                        }
+                    }
+
+                    // ArrowRight
+                    if (e.keyCode === 39 || e.keyCode === 68) {
+                        if (this.arrowSelection === null) {
+                            return;
+                        } else {
+                            if (this.arrowSelection >= this.minimapManager.pairs.length - 1) {
+                                $(this.minimapManager.pairs[this.arrowSelection].mapCanvas).trigger('mouseout');
+
+                                this.arrowSelection = null;
+                            } else {
+                                $(this.minimapManager.pairs[this.arrowSelection].mapCanvas).trigger('mouseout');
+
+                                this.arrowSelection ++;
+
+                                $(this.minimapManager.pairs[this.arrowSelection].mapCanvas).trigger('mouseover');
+                            }
+                        }
+                    }
+                });
             }
         }
 
@@ -1323,7 +1369,7 @@
 
                 this.zoomingDestID = destID;
 
-                if (!this.zoomingCurrentStep) {
+                if (this.zoomingCurrentStep === null) {
                     this.zoomingCurrentStep = this.minimapManager.pairs.length;
                 }
 
@@ -1347,7 +1393,7 @@
                 }
 
                 if (this.zoomingDestID < this.zoomingCurrentStep) {
-                    this.zoomingCurrentStep -= 0.01;
+                    this.zoomingCurrentStep -= 0.07;
 
                     if (this.zoomingCurrentStep <= this.zoomingDestID) {
                         this.zooming = false;
@@ -1355,7 +1401,7 @@
                     }
                 } else {
                     if (this.zoomingDestID > this.zoomingCurrentStep) {
-                        this.zoomingCurrentStep += 0.01;
+                        this.zoomingCurrentStep += 0.07;
     
                         if (this.zoomingCurrentStep >= this.zoomingDestID) {
                             this.zooming = false;
