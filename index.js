@@ -1840,7 +1840,7 @@
     var mapWidth = 160;
     var mapHeight = 90;
 
-    var controlPanelWidth = 400;
+    var controlPanelWidth = 410;
 
     var visMagnif = 10000;
     var mapMagnif = 300;
